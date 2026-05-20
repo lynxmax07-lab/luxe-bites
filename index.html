@@ -90,7 +90,7 @@
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans select-none min-h-screen relative flex flex-col justify-between overflow-x-hidden custom-scroll dark">
+<body class="bg-slate-950 text-slate-100 font-sans select-none min-h-screen relative flex flex-col justify-between overflow-x-hidden custom-scroll dark pb-16 lg:pb-0">
   
   <!-- BACKGROUND GRADIENT BLUR LIGHTS -->
   <div class="absolute top-[-10%] left-[-10%] w-[50%] aspect-square rounded-full bg-amber-500/5 blur-[120px] pointer-events-none z-0"></div>
@@ -150,7 +150,7 @@
   <main class="max-w-7xl mx-auto w-full px-4 md:px-8 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6 relative z-10 flex-grow">
     
     <!-- LEFT & MIDDLE SECTION: MENU CATALOGUE AND SELECTION (3 COLS) -->
-    <div class="lg:col-span-3 flex flex-col gap-6">
+    <div id="catalogColumn" class="lg:col-span-3 flex flex-col gap-6">
       
       <!-- Welcome Banner -->
       <div class="relative rounded-2xl overflow-hidden border border-brand-500/10 bg-gradient-to-r from-slate-950/80 via-slate-900/40 to-slate-950/50 p-6 md:p-8 flex items-center justify-between">
@@ -189,6 +189,30 @@
 
       <div id="menuGrid" class="hidden grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         <!-- Dynamically filled with products catalog cards -->
+      </div>
+
+      <!-- REVIEWS & ULASAN CUSTOMER SECTION (AUTOMATICALLY POPULATED) -->
+      <div class="rounded-2xl border border-brand-500/10 bg-slate-900/10 p-5 mt-4 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center">
+              <i data-lucide="sparkles" class="w-4 h-4 text-brand-400"></i>
+            </div>
+            <div>
+              <h3 class="font-display font-extrabold text-xs text-slate-100 uppercase tracking-widest">Ulasan Pelanggan Terhormat</h3>
+              <p class="text-[9px] font-mono text-slate-500">Kesan rasa & pelayanan koki di Luxe Bites</p>
+            </div>
+          </div>
+          <!-- Submit feedback button -->
+          <button onclick="launchReviewSystem('LUXE-RAND', state.selectedTable || 'Takeaway')" class="px-3 py-1.5 rounded-lg border border-brand-500/30 text-brand-400 hover:bg-brand-500 hover:text-slate-950 hover:border-brand-500 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-md">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Beri Feedback
+          </button>
+        </div>
+        
+        <!-- Live review items carousel/grid -->
+        <div id="customerReviewsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[250px] overflow-y-auto custom-scroll pr-1">
+          <!-- Filled by Javascript dynamically -->
+        </div>
       </div>
 
     </div>
@@ -345,6 +369,16 @@
     // Initialize Supabase Client
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // LOCAL OVERRIDE MAP TO ENSURE THE REVOLUTIONARY GENERATED PNG IMAGES RENDERS ALL THE TIME SENSATIONAL
+    const LOCAL_IMAGE_MAP = {
+      "Sate Madura Authentic": "/src/assets/images/sate_madura_1779286092310.png",
+      "Bakso Sapi Urat Solo": "/src/assets/images/bakso_solo_1779286109805.png",
+      "Ayam Goreng Lalapan Sunda": "/src/assets/images/ayam_goreng_1779286124244.png",
+      "Premium Crispy Chicken Steak": "/src/assets/images/chicken_steak_1779286140141.png",
+      "Crispy Churros Spanyol": "/src/assets/images/crispy_churros_1779286159300.png",
+      "Lava Chocolate Fondant Cake": "/src/assets/images/crispy_churros_1779286159300.png"
+    };
+
     // Static Local Fallback configurations
     const CATEGORIES = [
       { id: 'all', name: 'Semua Sajian' },
@@ -357,17 +391,17 @@
 
     const DEFAULT_MENU_ITEMS = [
       { id: 1, cat: "Nusantara", name: "Nasi Goreng Kampung Spesial", origin: "Jawa", price: 18000, desc: "Nasi goreng bumbu tradisional Jawa dengan telur mata sapi, suwiran ayam gurih, bawang goreng, acing, dan kerupuk udang renyah.", img: "https://images.unsplash.com/photo-1617093727343-374698b1b08d?auto=format&fit=crop&w=600&q=80", is_available: true },
-      { id: 2, cat: "Nusantara", name: "Sate Madura Authentic", origin: "Madura", price: 22000, desc: "10 tusuk sate ayam empuk dipanggang arang kelapa tradisional, disajikan dengan siraman saus bumbu kacang gurih pekat berkemilau minyak kemiri.", img: "https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=600&q=80", is_available: true },
-      { id: 3, cat: "Nusantara", name: "Bakso Sapi Urat Solo", origin: "Solo", price: 17000, desc: "Bakso sapi urat kenyal racikan Solo dilengkapi bihun, mi telur kuning, tahu goreng gurih, kubis hancur, taburan seledri, dan kuah kaldu sapi pekat hangat.", img: "https://images.unsplash.com/photo-1593443320739-77f74939d0da?auto=format&fit=crop&w=600&q=80", is_available: true },
-      { id: 4, cat: "Nusantara", name: "Ayam Goreng Lalapan Sunda", origin: "Sunda", price: 20000, desc: "Ayam goreng garing bumbu ungkep rempah kunyit jahe disajikan lengkap bersama sambal bajak pedas nikmat, potongan timun segar, kemangi, dan kol renyah.", img: "https://images.unsplash.com/photo-1626700051175-6518c4793f4f?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 2, cat: "Nusantara", name: "Sate Madura Authentic", origin: "Madura", price: 22000, desc: "10 tusuk sate ayam empuk dipanggang arang kelapa tradisional, disajikan dengan siraman saus bumbu kacang gurih pekat berkemilau minyak kemiri.", img: "/src/assets/images/sate_madura_1779286092310.png", is_available: true },
+      { id: 3, cat: "Nusantara", name: "Bakso Sapi Urat Solo", origin: "Solo", price: 17000, desc: "Bakso sapi urat kenyal racikan Solo dilengkapi bihun, mi telur kuning, tahu goreng gurih, kubis hancur, taburan seledri, dan kuah kaldu sapi pekat hangat.", img: "/src/assets/images/bakso_solo_1779286109805.png", is_available: true },
+      { id: 4, cat: "Nusantara", name: "Ayam Goreng Lalapan Sunda", origin: "Sunda", price: 20000, desc: "Ayam goreng garing bumbu ungkep rempah kunyit jahe disajikan lengkap bersama sambal bajak pedas nikmat, potongan timun segar, kemangi, dan kol renyah.", img: "/src/assets/images/ayam_goreng_1779286124244.png", is_available: true },
       { id: 5, cat: "Western", name: "Beef Burger Supreme Melt", origin: "USA", price: 28000, desc: "Roti brioche bun lembut dengan daging patty sapi panggang juicy tebal, lelehan keju cheddar slice, saus mayo mustard, potongan tomat merah dan selada segar.", img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80", is_available: true },
       { id: 6, cat: "Western", name: "Creamy Carbonara Fettuccine", origin: "Italia", price: 25000, desc: "Fettuccine kenyal al-dente disiram saus creamy kental racikan parutan keju parmesan premium, kuning telur, susu segar, dan taburan daging asap renyah.", img: "https://images.unsplash.com/photo-1612874742237-6526221588e3?auto=format&fit=crop&w=600&q=80", is_available: true },
-      { id: 13, cat: "Western", name: "Premium Crispy Chicken Steak", origin: "USA", price: 30000, desc: "Fillet dada ayam goreng krispi renyah empuk disiram saus lada hitam kental pedas-manis, dipadukan kentang goreng garing dan sayuran rebus mentega.", img: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 13, cat: "Western", name: "Premium Crispy Chicken Steak", origin: "USA", price: 30000, desc: "Fillet dada ayam goreng krispi renyah empuk disiram saus lada hitam kental pedas-manis, dipadukan kentang goreng garing dan sayuran rebus mentega.", img: "/src/assets/images/chicken_steak_1779286140141.png", is_available: true },
       { id: 14, cat: "Western", name: "Belgian French Fries Original", origin: "Prancis", price: 12000, desc: "Kentang goreng potongan panjang khas Belgia, gurih bergaram laut renyah di luar lembut di dalam, disajikan hangat dengan cocolan saus sambal pedas.", img: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&q=80", is_available: true },
       { id: 7, cat: "Japanese", name: "Tender Chicken Katsu Donburi", origin: "Tokyo", price: 24000, desc: "Mangkuk nasi hangat dengan potongan ayam katsu renyah berbalur telur kuah kaldu dashi khas Jepang, taburan irisan daun bawang segar di atasnya.", img: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80", is_available: true },
       { id: 15, cat: "Japanese", name: "Torikatsu Ramen Shoyu Soup", origin: "Osaka", price: 26000, desc: "Ramen kuah kaldu kecap Jepang (Shoyu) bercita rasa asin gurih harum minyak wijen, dihiasi ayam katsu garing, telur rebus setengah matang, nori, dan daun bawang.", img: "https://images.unsplash.com/photo-1557872943-16a5ac26437e?auto=format&fit=crop&w=600&q=80", is_available: true },
       { id: 16, cat: "Japanese", name: "Crunchy Chicken Sushi Roll", origin: "Kyoto", price: 22000, desc: "Sushi roll isi ayam filet krispi, mentimun Jepang (kyuri) segar digulung nori premium berbalur remah tempura gurih pedas dan siraman saus mayo pedas manis.", img: "https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=600&q=80", is_available: true },
-      { id: 19, cat: "Dessert", name: "Lava Chocolate Fondant Cake", origin: "Prancis", price: 18000, desc: "Kue cokelat panggang klasik nan elegan dengan isian cokelat hitam premium cair meleleh lumer hangat di mulut, disajikan dengan taburan gula halus.", img: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 19, cat: "Dessert", name: "Crispy Churros Spanyol", origin: "Spanyol", price: 15200, desc: "Churros Spanyol renyah bertabur gula kayu manis (cinnamon sugar) hangat yang manis nan gurih, disajikan cantik dalam wadah kertas motif hati merah.", img: "/src/assets/images/crispy_churros_1779286159300.png", is_available: true },
       { id: 10, cat: "Drinks", name: "Es Teh Jasmin Jumbo Craft", origin: "Lokal", price: 4000, desc: "Minuman es teh manis seduhan racikan tiga merek daun teh Jasmin lokal berkualitas tinggi menghasilkan rasa wangi melati pekat menyegarkan porsi gelas raksasa.", img: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=600&q=80", is_available: true },
       { id: 12, cat: "Drinks", name: "Es Jeruk Peras Alami Segar", origin: "Lokal", price: 7000, desc: "Perasan jeruk lokal berair manis keasaman diperas tangan murni segar dingin melimpah vitamin C alami, diracik murni tanpa perasa esens buatan.", img: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=600&q=80", is_available: true }
     ];
@@ -415,6 +449,12 @@
 
       // Begin loading DB lists
       await loadDbData();
+
+      // Populate customer reviews and ratings
+      await loadReviewsAndDisplay();
+
+      // Ensure proper tab alignment for Android portrait views
+      switchMobileTab('catalog');
     });
 
     // Handle Light / Dark Theme on trigger
@@ -544,16 +584,19 @@
         
         if (error) throw error;
         if (data && data.length > 0) {
-          const items = data.map(m => ({
-            id: m.id,
-            cat: m.category,
-            name: m.name,
-            origin: m.origin || "Lokal",
-            price: m.price,
-            desc: m.description,
-            img: m.image_url,
-            is_available: m.is_available !== false
-          }));
+          const items = data.map(m => {
+            const localImg = LOCAL_IMAGE_MAP[m.name];
+            return {
+              id: m.id,
+              cat: m.category,
+              name: m.name,
+              origin: m.origin || "Lokal",
+              price: m.price,
+              desc: m.description,
+              img: localImg || m.image_url,
+              is_available: m.is_available !== false
+            };
+          });
           localStorage.setItem(LOCAL_STORAGE_MENU_KEY, JSON.stringify(items));
           return items;
         } else {
@@ -642,23 +685,218 @@
       }
     }
 
-    async function insertDbReview(review) {
-      try {
-        await supabaseClient.from("reviews").insert([review]);
-      } catch(e) {
-        console.warn("Supabase review push failed:", e);
-      }
-    }
-
     // Cache fallback loaders
     function loadCachedMenu() {
       const cached = localStorage.getItem(LOCAL_STORAGE_MENU_KEY);
-      return cached ? JSON.parse(cached) : DEFAULT_MENU_ITEMS;
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          return parsed.map(item => ({
+            ...item,
+            img: LOCAL_IMAGE_MAP[item.name] || item.img
+          }));
+        } catch(e) {}
+      }
+      return DEFAULT_MENU_ITEMS;
     }
 
     function loadCachedTables() {
       const cached = localStorage.getItem(LOCAL_STORAGE_TABLES_KEY);
       return cached ? JSON.parse(cached) : DEFAULT_TABLES;
+    }
+
+    // -------------------------------------------------------------
+    // CLIENT INTEGRATION: REVIEW SYSTEM & MOBILE TAB VIEWS & AUTOMATION
+    // -------------------------------------------------------------
+
+    // Mobile Bottom Tab Navigation View Handler (Android portrait optimization)
+    function switchMobileTab(tab) {
+      state.mobileActiveTab = tab;
+      
+      const catalog = document.getElementById("catalogColumn");
+      const chat = document.getElementById("chatContainer");
+      const cart = document.getElementById("cartBar");
+      
+      const btnCatalog = document.getElementById("btnMobileCatalog");
+      const btnChat = document.getElementById("btnMobileChat");
+      const btnCart = document.getElementById("btnMobileCart");
+      
+      if (!catalog || !chat || !cart) return;
+
+      if (tab === 'catalog') {
+        catalog.className = "lg:col-span-3 flex flex-col gap-6";
+        chat.className = "hidden lg:flex flex-grow flex-col rounded-2xl border border-brand-500/10 bg-slate-900/25 backdrop-blur-sm shadow-xl min-h-[350px] overflow-hidden";
+        cart.className = "hidden lg:block rounded-2xl border border-brand-500/15 bg-gradient-to-br from-slate-900/60 to-slate-950/30 p-4 shadow-xl";
+        
+        btnCatalog.className = "flex flex-col items-center justify-center p-2 text-brand-400 font-bold transition-all cursor-pointer";
+        btnChat.className = "flex flex-col items-center justify-center p-2 text-slate-500 transition-all cursor-pointer relative";
+        btnCart.className = "flex flex-col items-center justify-center p-2 text-slate-500 transition-all cursor-pointer relative";
+      } else if (tab === 'chat') {
+        catalog.className = "hidden lg:col-span-3 lg:flex flex-col gap-6";
+        chat.className = "flex flex-grow flex-col rounded-2xl border border-brand-500/10 bg-slate-900/25 backdrop-blur-sm shadow-xl min-h-[450px] overflow-hidden";
+        cart.className = "hidden lg:block rounded-2xl border border-brand-500/15 bg-gradient-to-br from-slate-900/60 to-slate-950/30 p-4 shadow-xl";
+        
+        btnCatalog.className = "flex flex-col items-center justify-center p-2 text-slate-500 transition-all cursor-pointer";
+        btnChat.className = "flex flex-col items-center justify-center p-2 text-brand-400 font-bold transition-all cursor-pointer relative";
+        btnCart.className = "flex flex-col items-center justify-center p-2 text-slate-500 transition-all cursor-pointer relative";
+      } else if (tab === 'cart') {
+        catalog.className = "hidden lg:col-span-3 lg:flex flex-col gap-6";
+        chat.className = "hidden lg:flex flex-grow flex-col rounded-2xl border border-brand-500/10 bg-slate-900/25 backdrop-blur-sm shadow-xl min-h-[350px] overflow-hidden";
+        cart.className = "block rounded-2xl border border-brand-500/15 bg-gradient-to-br from-slate-900/60 to-slate-950/30 p-4 shadow-xl w-full";
+        
+        btnCatalog.className = "flex flex-col items-center justify-center p-2 text-slate-500 transition-all cursor-pointer";
+        btnChat.className = "flex flex-col items-center justify-center p-2 text-slate-500 transition-all cursor-pointer relative";
+        btnCart.className = "flex flex-col items-center justify-center p-2 text-brand-400 font-bold transition-all cursor-pointer relative";
+      }
+      lucide.createIcons();
+    }
+
+    // Auto Proactive Chef AI suggestion on cart changes ("ai otomatis bro")
+    let lastRecommendationTime = 0;
+    async function triggerChefAutoAIRecommendation(item, actionType) {
+      const now = Date.now();
+      if (now - lastRecommendationTime < 5000) return; // Prevent prompt overloading
+      lastRecommendationTime = now;
+      
+      const query = `Saya baru saja ${actionType === 'add' ? 'menambahkan' : 'mengubah porsi'} ${item.name} ke keranjang pesanan saya. Berikan rekomendasi singkat (1-2 kalimat saja) yang asyik mengenai minuman mewah atau hidangan kecil Luxe Bites yang paling cocok mendampingi sajian ini kawan!`;
+      
+      const loader = document.getElementById("aiTypingIndicator");
+      if (loader) loader.classList.remove("hidden");
+      
+      try {
+        const contextualMenu = state.menu
+          .filter(m => m.is_available)
+          .map(m => `- [${m.cat}] ${m.name} - Rp ${m.price} (${m.desc})`)
+          .join("\n");
+          
+        const res = await fetch("/api/gemini/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: query,
+            history: [],
+            menuContext: contextualMenu
+          })
+        });
+        
+        if (!res.ok) throw new Error("Offline");
+        const data = await res.json();
+        
+        state.aiChatHistory.push({
+          id: `chat-${Date.now()}-auto-bot`,
+          role: "bot",
+          text: `💡 **Saran Otomatis Chef:** ${data.text}`,
+          timestamp: new Date()
+        });
+        renderChat();
+        
+        // Show soft toast notify if customer is busy browsing catalog view
+        if (state.mobileActiveTab === 'catalog') {
+          const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3500,
+            timerProgressBar: true,
+            background: '#0d1527',
+            color: '#c9a84c'
+          });
+          Toast.fire({
+            icon: 'info',
+            title: `Chef AI memberikan saran pendamping hidangan!`
+          });
+        }
+      } catch (e) {
+        console.warn("Auto Chef advice skipped due to offline or request rate-limits:", e);
+      } finally {
+        if (loader) loader.classList.add("hidden");
+      }
+    }
+
+    // Customer Review Database Pullers & Renderers
+    async function fetchDbReviews() {
+      try {
+        const { data, error } = await supabaseClient
+          .from("reviews")
+          .select("*")
+          .order("created_at", { ascending: false });
+        
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const items = data.map(r => ({
+            id: r.id,
+            order_code: r.order_code,
+            table_number: r.table_number || "Takeaway",
+            customer_name: r.customer_name || "Kawan Anonim",
+            rating: r.rating || 5,
+            comments: r.comments || "Kelezatan hidangan kelas premium!",
+            created_at: r.created_at
+          }));
+          localStorage.setItem("luxe_cached_reviews", JSON.stringify(items));
+          return items;
+        }
+      } catch (err) {
+        console.warn("Failed fetching from reviews table in Supabase:", err.message);
+      }
+      return loadCachedReviews();
+    }
+
+    function loadCachedReviews() {
+      const cached = localStorage.getItem("luxe_cached_reviews");
+      if (cached) return JSON.parse(cached);
+      const list = [
+        { customer_name: "Andi Saputra", rating: 5, comments: "Sate Maduranya bumbu kacangnya gurih tebal banget! Nasi goreng kampungnya juga sedap asli khas Jawa.", table_number: "Meja 3", created_at: new Date().toISOString() },
+        { customer_name: "Rina Wijaya", rating: 4, comments: "Porsi churrosnya hangat, krispi dan wangi kayumanisnya pas banget, disajikan sangat rapi.", table_number: "Meja 1", created_at: new Date().toISOString() },
+        { customer_name: "Beni Prasetyo", rating: 5, comments: "Ayam Goreng Sambal Bajak pedasnya juara mantap abis kawan! Ayamnya empuk disajikan panas-panas.", table_number: "Meja 5", created_at: new Date().toISOString() }
+      ];
+      localStorage.setItem("luxe_cached_reviews", JSON.stringify(list));
+      return list;
+    }
+
+    async function insertDbReview(review) {
+      try {
+        await supabaseClient.from("reviews").insert([review]);
+      } catch(e) {
+        console.warn("Supabase review insert failed, running local backup sync:", e);
+      }
+      const cached = loadCachedReviews();
+      cached.unshift(review);
+      localStorage.setItem("luxe_cached_reviews", JSON.stringify(cached));
+      
+      await loadReviewsAndDisplay();
+    }
+
+    async function loadReviewsAndDisplay() {
+      const list = await fetchDbReviews();
+      renderCustomerReviewsUI(list);
+    }
+
+    function renderCustomerReviewsUI(reviewsList) {
+      const container = document.getElementById("customerReviewsGrid");
+      if (!container) return;
+      
+      if (reviewsList.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-8 text-center text-slate-500 text-xs font-mono">
+            Belum ada ulasan terkirim kawan. Jadilah yang pertama memberikan kesan rasa!
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = reviewsList.map(review => {
+        let stars = "★".repeat(review.rating) + "☆".repeat(5 - review.rating);
+        return `
+          <div class="p-3 border border-slate-800 bg-slate-900/20 backdrop-blur-sm rounded-xl space-y-1 transition-all hover:border-slate-700">
+            <div class="flex items-center justify-between">
+              <span class="font-display font-semibold text-xs text-slate-200">${review.customer_name}</span>
+              <span class="text-yellow-400 font-mono text-[11px]">${stars}</span>
+            </div>
+            <p class="text-[9px] text-slate-500 font-mono">${review.table_number || 'Takeaway'} • ${new Date(review.created_at).toLocaleDateString('id-ID')}</p>
+            <p class="text-[11px] leading-relaxed text-slate-400 italic font-sans mt-1">"${review.comments || review.comment}"</p>
+          </div>
+        `;
+      }).join('');
     }
 
     function getLocalOrders() {
@@ -667,9 +905,9 @@
     }
 
     function saveLocalOrder(order) {
-      const history = getLocalOrders();
-      history.unshift(order);
-      localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, JSON.stringify(history));
+      const current = getLocalOrders();
+      current.unshift(order);
+      localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, JSON.stringify(current));
     }
 
     function clearLocalOrders() {
@@ -677,19 +915,17 @@
     }
 
     // -------------------------------------------------------------
-    // RENDER FUNCTIONS - FRONTEND VIBES
+    // POPULATE UI RENDERS: MAIN PRODUCTS CATALOGUE
     // -------------------------------------------------------------
-    
-    // Categories Bar
     function renderCategories() {
       const container = document.getElementById("categoryContainer");
       container.innerHTML = CATEGORIES.map(cat => {
-        const isActive = state.activeCat === cat.id;
+        const isSelected = state.activeCat === cat.id;
         return `
-          <button onclick="selectCategory('${cat.id}')" class="px-3.5 py-1.5 rounded-lg text-[10px] md:text-xs font-semibold whitespace-nowrap transition-all duration-250 cursor-pointer border ${
-            isActive 
-              ? 'bg-amber-500/10 text-brand-400 border-brand-500/30 font-bold' 
-              : 'bg-slate-900/30 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700'
+          <button onclick="setCategoryFilter('${cat.id}')" class="px-4 py-2 text-xs rounded-xl font-bold cursor-pointer transition-all border whitespace-nowrap scroll-mx-4 ${
+            isSelected 
+              ? 'bg-amber-500/10 text-brand-400 border-brand-500/20 font-extrabold' 
+              : 'bg-slate-905 text-slate-400 border-slate-850 hover:text-slate-200'
           }">
             ${cat.name}
           </button>
@@ -697,29 +933,27 @@
       }).join('');
     }
 
-    function selectCategory(catId) {
+    function setCategoryFilter(catId) {
       state.activeCat = catId;
       renderCategories();
       renderMenuGrid();
     }
 
-    // Menus Catalog Grid Renders
     function renderMenuGrid() {
       const grid = document.getElementById("menuGrid");
       
       const filtered = state.menu.filter(item => {
-        const matchCat = state.activeCat === 'all' || item.cat === state.activeCat;
-        const matchSearch = item.name.toLowerCase().includes(state.searchQuery.toLowerCase()) || 
-                            item.desc.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-                            item.origin.toLowerCase().includes(state.searchQuery.toLowerCase());
-        return matchCat && matchSearch;
+        const matchesCat = state.activeCat === 'all' || item.cat === state.activeCat;
+        const matchesSearch = item.name.toLowerCase().includes(state.searchQuery.toLowerCase()) || 
+                              item.desc.toLowerCase().includes(state.searchQuery.toLowerCase());
+        return matchesCat && matchesSearch;
       });
 
       if (filtered.length === 0) {
         grid.innerHTML = `
-          <div class="col-span-full py-16 flex flex-col items-center justify-center text-slate-500">
-            <i data-lucide="utensils-crossed" class="w-10 h-10 mb-2 opacity-30"></i>
-            <p class="text-xs font-mono">Sajian tidak ditemukan, silakan ketik kata kunci lain kawan.</p>
+          <div class="col-span-full py-16 text-center text-slate-500 font-mono text-xs">
+            <i data-lucide="info" class="w-6 h-6 mx-auto mb-2 opacity-40"></i>
+            Menu kuliner yang Anda cari sedang tidak tersedia kawan.
           </div>
         `;
         lucide.createIcons();
@@ -727,36 +961,38 @@
       }
 
       grid.innerHTML = filtered.map(item => {
-        const hasCardAvailability = item.is_available;
-        const buttonHtml = hasCardAvailability 
-          ? `<button onclick="addToCart(${item.id})" class="px-3 py-1.5 rounded-lg bg-brand-500 text-slate-950 text-[10px] font-bold shadow hover:brightness-110 active:scale-[0.95] transition-all flex items-center gap-1 cursor-pointer">
+        const localImgOverride = LOCAL_IMAGE_MAP[item.name] || item.img;
+        const disabledAttrClass = item.is_available ? '' : 'opacity-40 grayscale pointer-events-none';
+        const buttonHtml = item.is_available
+          ? `<button onclick="addToCart(${item.id})" class="px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-400 text-slate-950 font-display font-black text-[10px] tracking-wide shadow cursor-pointer transition-colors flex items-center gap-1">
                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah
              </button>`
-          : `<span class="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-slate-500 text-[9px] font-mono tracking-wider font-semibold uppercase">Habis</span>`;
+          : `<span class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 font-mono text-[9px] uppercase tracking-wider font-extrabold">Habis</span>`;
 
         return `
-          <div class="rounded-xl border border-slate-800/60 bg-slate-900/15 overflow-hidden flex flex-col hover:border-brand-500/20 transition-all duration-300 relative group">
+          <div class="rounded-2xl border border-brand-500/10 bg-slate-900/15 overflow-hidden flex flex-col justify-between hover:border-brand-500/25 hover:shadow-lg hover:shadow-brand-500/5 transition-all">
             
-            <!-- Food image tag representation -->
-            <div class="h-36 overflow-hidden relative bg-slate-950">
-              <img src="${item.img}" alt="${item.name}" referrerpolicy="no-referrer" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-              <!-- Origin Badging -->
-              <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[8px] font-mono tracking-wider font-bold bg-slate-950/80 text-brand-400 border border-amber-500/10">
-                ${item.origin}
+            <!-- Graphic Image Header Area -->
+            <div class="relative aspect-video w-full overflow-hidden bg-slate-950/45 border-b border-slate-900 ${disabledAttrClass}">
+              <img src="${localImgOverride}" alt="${item.name}" referrerpolicy="no-referrer" class="w-full h-full object-cover transition-transform duration-500 hover:scale-105">
+              <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-[8px] font-mono tracking-widest font-extrabold uppercase bg-slate-950/70 border border-brand-500/20 text-brand-400 backdrop-blur-sm">
+                ${item.cat}
+              </span>
+              <span class="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md text-[8px] font-mono tracking-wider font-bold text-slate-400 bg-slate-950/70 backdrop-blur-sm">
+                Origin: ${item.origin}
               </span>
             </div>
 
-            <!-- Description & content section -->
-            <div class="p-4 flex-grow flex flex-col justify-between gap-3">
+            <!-- Texts Summary Body Column -->
+            <div class="p-4 flex-grow flex flex-col justify-between gap-3 bg-gradient-to-b from-slate-900/5 to-slate-950/30">
               <div class="space-y-1">
-                <span class="text-[9px] text-slate-500 font-mono font-bold tracking-wider uppercase">${item.cat}</span>
-                <h4 class="font-display font-black text-sm text-slate-200 line-clamp-1">${item.name}</h4>
-                <p class="text-[10px] leading-relaxed text-slate-400 line-clamp-2">${item.desc}</p>
+                <h3 class="font-display font-bold text-xs md:text-sm text-slate-200 line-clamp-1">${item.name}</h3>
+                <p class="text-[10px] md:text-xs text-slate-500 leading-relaxed font-sans line-clamp-2">${item.desc}</p>
               </div>
 
-              <!-- Price row footer inside the card -->
-              <div class="flex items-center justify-between border-t border-slate-800/40 pt-2.5">
-                <span class="font-mono text-brand-400 font-black text-xs md:text-sm">Rp ${item.price.toLocaleString('id-ID')}</span>
+              <!-- Price Tag and Adding Trigger button -->
+              <div class="flex items-center justify-between border-t border-slate-900/50 pt-2.5 mt-1">
+                <span class="font-mono text-xs md:text-sm font-extrabold text-brand-400">Rp ${item.price.toLocaleString('id-ID')}</span>
                 ${buttonHtml}
               </div>
             </div>
@@ -764,47 +1000,33 @@
           </div>
         `;
       }).join('');
-
+      
       lucide.createIcons();
     }
 
     // -------------------------------------------------------------
-    // SHOPPING CART CONTROLLER
+    // SHOPPING CART CONTROLS
     // -------------------------------------------------------------
-    function addToCart(itemId) {
-      const item = state.menu.find(x => x.id === itemId);
+    function addToCart(id) {
+      const item = state.menu.find(m => m.id === id);
       if (!item) return;
 
-      const existingIdx = state.cart.findIndex(x => x.id === itemId);
+      const existingIdx = state.cart.findIndex(c => c.id === id);
       if (existingIdx > -1) {
-        state.cart[existingIdx].qty += 1;
+        state.cart[existingIdx].qty++;
       } else {
         state.cart.push({
           id: item.id,
-          cat: item.cat,
           name: item.name,
           price: item.price,
-          qty: 1,
-          img: item.img
+          qty: 1
         });
       }
 
-      // Small informative popup
-      const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 1500,
-        timerProgressBar: false,
-        background: state.isDarkMode ? '#0f1322' : '#ffffff',
-        color: state.isDarkMode ? '#eef0f5' : '#1e293b'
-      });
-      Toast.fire({
-        icon: 'success',
-        title: `${item.name} masuk keranjang kawan!`
-      });
-
       renderCartUI();
+      
+      // Proactive Auto AI Suggestion - No explicit trigger wait required
+      triggerChefAutoAIRecommendation(item, 'add');
     }
 
     function updateCartQty(idx, delta) {
@@ -812,8 +1034,13 @@
       if (!item) return;
 
       item.qty += delta;
+      const originalItem = { ...item };
       if (item.qty <= 0) {
         state.cart.splice(idx, 1);
+      }
+
+      if (delta > 0) {
+        triggerChefAutoAIRecommendation(originalItem, 'update');
       }
       renderCartUI();
     }
@@ -821,11 +1048,24 @@
     function renderCartUI() {
       const emptyState = document.getElementById("cartStatusEmpty");
       const filledState = document.getElementById("cartStatusFilledClass");
-      const badge = document.getElementById("cartQtyBadge");
       const list = document.getElementById("cartList");
 
+      const badge = document.getElementById("cartQtyBadge");
       const qtySum = state.cart.reduce((s, x) => s + x.qty, 0);
       badge.innerText = `${qtySum} Item`;
+
+      // Update mobile-optimized bottom tab bar bag indicator
+      const mobileBadge = document.getElementById("mobileCartCounterBadge");
+      if (mobileBadge) {
+        if (qtySum > 0) {
+          mobileBadge.innerText = qtySum;
+          mobileBadge.classList.remove("hidden");
+          mobileBadge.classList.add("flex");
+        } else {
+          mobileBadge.classList.add("hidden");
+          mobileBadge.classList.remove("flex");
+        }
+      }
 
       if (state.cart.length === 0) {
         emptyState.classList.remove("hidden");
@@ -836,139 +1076,281 @@
       emptyState.classList.add("hidden");
       filledState.classList.remove("hidden");
 
-      // Set item rows inside list
-      list.innerHTML = state.cart.map((item, idx) => `
-        <div class="flex items-center justify-between gap-1.5 p-2 bg-slate-900/30 border border-slate-800 rounded-lg">
-          <div class="flex items-center gap-1.5 flex-grow min-w-0">
-            <div class="w-8 h-8 rounded-md overflow-hidden bg-slate-950 flex-shrink-0">
-              <img src="${item.img}" class="w-full h-full object-cover">
-            </div>
-            <div class="min-w-0">
-              <h5 class="font-display font-medium text-[10px] text-slate-200 line-clamp-1">${item.name}</h5>
-              <span class="font-mono text-[9px] text-brand-400">Rp ${item.price.toLocaleString('id-ID')}</span>
-            </div>
+      // Calculate checkout totals
+      const sub = state.cart.reduce((s, x) => s + (x.price * x.qty), 0);
+      const tax = Math.round(sub * 0.11);
+      const grand = sub + tax;
+
+      document.getElementById("cartSubtotal").innerText = `Rp ${sub.toLocaleString('id-ID')}`;
+      document.getElementById("cartTax").innerText = `Rp ${tax.toLocaleString('id-ID')}`;
+      document.getElementById("cartGrandTotal").innerText = `Rp ${grand.toLocaleString('id-ID')}`;
+
+      list.innerHTML = state.cart.map((cartItem, idx) => `
+        <div class="flex items-center justify-between py-1 bg-slate-900/20 border-b border-slate-900/40 pb-2">
+          <div class="min-w-0 flex-grow pr-1">
+            <span class="font-sans text-[11px] font-bold text-slate-350 block truncate">${cartItem.name}</span>
+            <span class="font-mono text-[9px] text-brand-400 font-bold">@Rp ${cartItem.price.toLocaleString('id-ID')}</span>
           </div>
-          
-          <!-- Stepper controllers -->
-          <div class="flex items-center gap-1">
-            <button onclick="updateCartQty(${idx}, -1)" class="w-5 h-5 rounded bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer transition-colors">-</button>
-            <span class="font-mono text-[10px] w-4 text-center text-slate-200 font-bold">${item.qty}</span>
-            <button onclick="updateCartQty(${idx}, 1)" class="w-5 h-5 rounded bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer transition-colors">+</button>
+          <div class="flex items-center gap-1.5">
+            <button onclick="updateCartQty(${idx}, -1)" class="w-4 h-4 rounded bg-slate-800 hover:bg-slate-700 font-black flex items-center justify-center text-[11px] text-slate-300 font-serif">-</button>
+            <span class="font-mono text-xs font-bold text-slate-200">${cartItem.qty}</span>
+            <button onclick="updateCartQty(${idx}, 1)" class="w-4 h-4 rounded bg-slate-800 hover:bg-slate-700 font-black flex items-center justify-center text-[10px] text-slate-300 font-serif">+</button>
           </div>
         </div>
       `).join('');
-
-      // Math calculations representation
-      const subtotal = state.cart.reduce((s, x) => s + (x.price * x.qty), 0);
-      const tax = Math.round(subtotal * 0.11);
-      const grandTotal = subtotal + tax;
-
-      document.getElementById("cartSubtotal").innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
-      document.getElementById("cartTax").innerText = `Rp ${tax.toLocaleString('id-ID')}`;
-      document.getElementById("cartGrandTotal").innerText = `Rp ${grandTotal.toLocaleString('id-ID')}`;
     }
 
     // -------------------------------------------------------------
-    // MODAL DIALOGS - DINING MEJA SELECTION
+    // CHECKOUT FLOW OPERATIONS
     // -------------------------------------------------------------
-    function openTableSelector() {
-      document.getElementById("tableDialog").showModal();
-    }
+    async function triggerCheckoutFlow() {
+      if (state.cart.length === 0) return;
 
-    function renderTablesInModal() {
-      const grid = document.getElementById("tableModalGrid");
-      grid.innerHTML = state.tables.map(table => {
-        const isOccupied = table.is_occupied;
-        const colorClasses = isOccupied 
-          ? 'bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed opacity-60' 
-          : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 hover:border-emerald-500 cursor-pointer';
+      // Ensure dining table selected if dine-in
+      if (state.orderType === "Dine In" && !state.selectedTable) {
+        openTableSelector();
+        Swal.fire({
+          icon: 'info',
+          title: 'Nomor Meja Diperlukan',
+          text: 'Harap tentukan nomor meja makan Anda terlebih dahulu kawan.',
+          confirmButtonColor: '#c9a84c',
+          background: state.isDarkMode ? '#0f1322' : '#ffffff',
+          color: state.isDarkMode ? '#eef0f5' : '#1e293b'
+        });
+        return;
+      }
 
-        return `
-          <button onclick="${isOccupied ? '' : `chooseTable('${table.table_number}')`}" class="flex flex-col items-center justify-center p-3 rounded-xl border font-bold transition-all text-xs font-mono select-none ${colorClasses}">
-            <i data-lucide="armchair" class="w-4 h-4 mb-1"></i>
-            ${table.table_number}
-          </button>
-        `;
-      }).join('');
-      lucide.createIcons();
-    }
+      // Generate a dynamic 8 character randomized Order ID Code alphanumeric uppercase tracking
+      const orderCode = 'LUXE-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+      const sub = state.cart.reduce((s, x) => s + (x.price * x.qty), 0);
+      const tax = Math.round(sub * 0.11);
+      const grand = sub + tax;
 
-    async function chooseTable(tableNumber) {
-      document.getElementById("tableDialog").close();
-      
-      // Select Optimistic update
-      await updateDbTableStatus(tableNumber, true);
-      updateSelectedTable(tableNumber);
+      const orderPayload = {
+        order_code: orderCode,
+        table_number: state.orderType === "Take Away" ? "Takeaway" : state.selectedTable,
+        order_type: state.orderType,
+        payment_method: state.paymentMethod,
+        items: state.cart,
+        subtotal: sub,
+        tax: tax,
+        grand_total: grand
+      };
 
+      // Show processing loader Swal
       Swal.fire({
-        icon: "success",
-        title: "Meja Terpilih!",
-        text: `Anda duduk di ${tableNumber}. Nikmati santapan, kawan!`,
+        title: 'Mempersiapkan Pesanan Anda...',
+        text: 'Menghubungkan ke satelit dapur Luxe Bites...',
+        allowOutsideClick: false,
         background: state.isDarkMode ? '#0f1322' : '#ffffff',
         color: state.isDarkMode ? '#eef0f5' : '#1e293b',
-        confirmButtonColor: '#c9a84c'
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      // Submit DB
+      await insertDbOrder(orderPayload);
+      
+      // Update tables occupant flags
+      if (state.orderType === "Dine In") {
+        await updateDbTableStatus(state.selectedTable, true);
+      }
+
+      // Close loader
+      Swal.close();
+
+      // Launch Confetti Celebration Cascades
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#c9a84c', '#e5c065', '#9ab', '#4cf']
+      });
+
+      // Open digital receipt panel
+      openDigitalReceiptModal(orderPayload);
+
+      // Clear local memory
+      state.cart = [];
+      renderCartUI();
+    }
+
+    function openDigitalReceiptModal(order) {
+      let itemsHtml = order.items.map(m => `
+        <div class="flex justify-between items-center text-xs py-1.5 border-b border-dashed border-slate-800">
+          <div>
+            <span class="font-bold text-slate-300">${m.name}</span>
+            <p class="text-[10px] text-slate-500 font-mono">x${m.qty} porsi</p>
+          </div>
+          <span class="font-mono text-slate-200">Rp ${(m.price * m.qty).toLocaleString('id-ID')}</span>
+        </div>
+      `).join('');
+
+      Swal.fire({
+        background: state.isDarkMode ? '#070b13' : '#ffffff',
+        color: state.isDarkMode ? '#dee3ef' : '#111827',
+        confirmButtonColor: '#c9a84c',
+        confirmButtonText: 'Terima kasih, Saya Antre!',
+        width: '420px',
+        html: `
+          <div class="text-left font-serif p-2 space-y-4">
+            
+            <!-- Branding Header -->
+            <div class="text-center border-b-2 border-brand-500 pb-3 space-y-1">
+              <h2 class="font-display font-extrabold text-[15px] tracking-widest text-brand-400">LUXE BITES DINING CORP</h2>
+              <p class="text-[9px] font-mono text-slate-500">INDONESIA PREMIUM GRANDE RESTO</p>
+              <p class="text-[9px] font-mono text-slate-500">Jakarta Executive Center • Suite 7B</p>
+            </div>
+
+            <!-- Code & Tables meta -->
+            <div class="font-mono text-[10px] text-slate-400 space-y-1 bg-slate-900/40 p-3 rounded-lg border border-slate-850">
+              <div class="flex justify-between">
+                <span>NOMOR STRUK:</span>
+                <span class="font-bold text-brand-400">${order.order_code}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>NOMOR MEJA:</span>
+                <span class="font-bold text-slate-200">${order.table_number || 'Takeaway'}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>WAKTU ORDER:</span>
+                <span>${new Date().toLocaleTimeString('id-ID')}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>STATUS SAJI:</span>
+                <span class="font-bold text-yellow-500 uppercase animate-pulse">Memasak</span>
+              </div>
+            </div>
+
+            <!-- Items summary -->
+            <div class="py-2.5 max-h-[160px] overflow-y-auto custom-scroll pr-1">
+              ${itemsHtml}
+            </div>
+
+            <!-- Billing Details -->
+            <div class="font-mono text-xs text-slate-450 space-y-1.5 border-t border-slate-800 pt-3">
+              <div class="flex justify-between">
+                <span>Subtotal Rincian:</span>
+                <span>Rp ${order.subtotal.toLocaleString('id-ID')}</span>
+              </div>
+              <div class="flex justify-between text-slate-500 text-[10px]">
+                <span>Pajak Restoran PPN 11%:</span>
+                <span>Rp ${order.tax.toLocaleString('id-ID')}</span>
+              </div>
+              <div class="flex justify-between text-sm font-bold text-brand-400 border-t border-slate-800/80 pt-2.5 mt-1.5">
+                <span>TOTAL HARGA (NETT):</span>
+                <span>Rp ${order.grand_total.toLocaleString('id-ID')}</span>
+              </div>
+            </div>
+
+            <!-- Footer terms -->
+            <div class="text-center font-mono text-[8px] text-slate-600 space-y-1 pt-3 border-t border-slate-900">
+              <p>Terima kasih atas santap pesanan kawan kuliner!</p>
+              <p>Metode Pembayaran: <b>${order.payment_method}</b> • ${order.order_type}</p>
+              <p class="font-bold text-brand-400">LUXE BITES — SELERA SENSASIONAL</p>
+            </div>
+
+          </div>
+        `
       });
     }
 
-    function selectTakeaway() {
+    // -------------------------------------------------------------
+    // CUSTOM TABLE SELECTOR MODALS
+    // -------------------------------------------------------------
+    function openTableSelector() {
+      const dialog = document.getElementById("tableDialog");
+      renderTablesInModal();
+      dialog.showModal();
+    }
+
+    function renderTablesInModal() {
+      const container = document.getElementById("tableModalGrid");
+      if (!container) return;
+
+      container.innerHTML = state.tables.map(tbl => {
+        const isOccupied = tbl.is_occupied;
+        const activeSelectClass = tbl.table_number === state.selectedTable 
+          ? 'ring-2 ring-brand-500 border-transparent bg-brand-500/10 text-brand-400' 
+          : '';
+        const occupColorClass = isOccupied 
+          ? 'bg-red-500/10 text-red-500 border-red-500/20 opacity-50 cursor-not-allowed' 
+          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20 cursor-pointer';
+
+        const clickHandler = isOccupied 
+          ? 'onclick="warnTableOccupied()"' 
+          : `onclick="selectDiningTable('${tbl.table_number}')"`;
+
+        return `
+          <div ${clickHandler} class="p-3 rounded-xl border text-center transition-all ${occupColorClass} ${activeSelectClass}">
+            <i data-lucide="armchair" class="w-4 h-4 mx-auto mb-1"></i>
+            <span class="font-display font-bold text-xs uppercase block">${tbl.table_number}</span>
+            <span class="text-[8px] font-mono tracking-widest uppercase opacity-70 block mt-0.5">${isOccupied ? 'Occup' : 'Empty'}</span>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function selectDiningTable(tableNumber) {
+      updateSelectedTable(tableNumber);
       document.getElementById("tableDialog").close();
+    }
+
+    function selectTakeaway() {
       updateSelectedTable(null);
       state.orderType = "Take Away";
       document.getElementById("checkoutOrderType").value = "Take Away";
+      document.getElementById("tableDialog").close();
     }
 
-    function updateSelectedTable(tbl) {
-      state.selectedTable = tbl;
+    function updateSelectedTable(tableNumber) {
+      state.selectedTable = tableNumber;
+      if (tableNumber) {
+        state.orderType = "Dine In";
+        document.getElementById("checkoutOrderType").value = "Dine In";
+      }
       updateSelectedTableUI();
     }
 
     function updateSelectedTableUI() {
-      const btnLabel = document.getElementById("headerTableLabel");
+      const label = document.getElementById("headerTableLabel");
+      const btn = document.getElementById("tableSelectorBtn");
       if (state.selectedTable) {
-        btnLabel.innerText = state.selectedTable;
-        document.getElementById("checkoutOrderType").value = "Dine In";
-        state.orderType = "Dine In";
+        label.innerText = state.selectedTable;
+        btn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand-500 bg-brand-500/5 text-xs text-brand-400 font-extrabold cursor-pointer";
       } else {
-        btnLabel.innerText = "Take Away";
-        document.getElementById("checkoutOrderType").value = "Take Away";
-        state.orderType = "Take Away";
+        label.innerText = "Takeaway";
+        btn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/40 text-xs text-slate-400 font-bold hover:border-brand-500/40 transition-all cursor-pointer";
       }
     }
 
-    // -------------------------------------------------------------
-    // CHEF CHAT CONCIERGE Virtual AI ENGINE
-    // -------------------------------------------------------------
-    function renderChat() {
-      const hist = document.getElementById("chatHistory");
-      hist.innerHTML = state.aiChatHistory.map(chat => {
-        const isUser = chat.role === 'user';
-        const floatClass = isUser ? 'self-end bg-brand-500/15 border-brand-500/20 text-slate-100' : 'self-start bg-slate-900 border-slate-800 text-slate-300';
-        const formattedHtml = isUser ? chat.text : marked.parse(chat.text);
-
-        return `
-          <div class="max-w-[85%] rounded-xl p-3 border leading-relaxed ${floatClass}">
-            <div class="font-bold text-[9px] text-slate-500 font-mono tracking-wider uppercase mb-1">${isUser ? 'Kawan' : 'Chef Concierge AI'}</div>
-            <div class="space-y-1">${formattedHtml}</div>
-          </div>
-        `;
-      }).join('');
-      
-      // Auto-scroll
-      hist.scrollTop = hist.scrollHeight;
+    function warnTableOccupied() {
+      Swal.fire({
+        icon: 'error',
+        title: 'Meja Sedang Ditempati',
+        text: 'Meja makan ini sedang direservasi untuk kawan kuliner lainnya.',
+        confirmButtonColor: '#c9a84c',
+        background: state.isDarkMode ? '#0f1322' : '#ffffff',
+        color: state.isDarkMode ? '#eef0f5' : '#1e293b'
+      });
     }
 
+    // -------------------------------------------------------------
+    // CHEF AI CONCIERGE CHAT ENGINE (GOOGLE GEMINI SYSTEM)
+    // -------------------------------------------------------------
     async function handleSendAIChat() {
       const input = document.getElementById("aiChatInput");
-      const query = input.value.trim();
-      if (!query) return;
+      const userMessage = input.value.trim();
+      if (!userMessage) return;
 
       input.value = "";
-      
-      // Save User Message
+
+      // Push history state
       state.aiChatHistory.push({
         id: `chat-${Date.now()}-user`,
         role: "user",
-        text: query,
+        text: userMessage,
         timestamp: new Date()
       });
       renderChat();
@@ -978,37 +1360,39 @@
       loader.classList.remove("hidden");
 
       try {
-        const contextualMenu = state.menu
+        // Construct detailed catalog lists to provide context grounding
+        const menuContext = state.menu
           .filter(m => m.is_available)
           .map(m => `- [${m.cat}] ${m.name} - Rp ${m.price} (${m.desc})`)
-          .join("\n");
+          .join('\n');
 
+        // Request node microservice Gemini endpoint
         const res = await fetch("/api/gemini/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            message: query,
-            history: state.aiChatHistory.map(chat => ({ role: chat.role, text: chat.text })),
-            menuContext: contextualMenu
+            message: userMessage,
+            history: state.aiChatHistory.slice(-10), // Pass local trailing windows history
+            menuContext: menuContext
           })
         });
 
-        if (!res.ok) throw new Error("API Offline");
+        if (!res.ok) throw new Error("Server Request Offline");
         const data = await res.json();
 
         state.aiChatHistory.push({
           id: `chat-${Date.now()}-bot`,
           role: "bot",
-          text: data.text || "Mohon maaf kawan, server AI kami sedang istirahat sebentar, mari lihat menu terpopuler.",
+          text: data.text,
           timestamp: new Date()
         });
+
       } catch (err) {
-        console.warn("API Service offline, using local standalone answers:", err);
-        // Inject offline reply fallback
+        console.warn("AI offline, supplying beautiful heuristic responses:", err);
         state.aiChatHistory.push({
           id: `chat-${Date.now()}-bot`,
           role: "bot",
-          text: getOfflineLocalChatbotEngineResponse(query),
+          text: "Mohon dimaafkan kawan kuliner, koki AI sedang menyiapkan piring saji di dapur belakang. Namun yang bisa saya sarankan, cobalah **Sate Madura Authentic** dan **Ayam Goreng Sambal Bajak** kami yang sangat legendaris!",
           timestamp: new Date()
         });
       } finally {
@@ -1017,254 +1401,40 @@
       }
     }
 
-    // Advanced Local Semantic Pattern matching for flawless presentation defense
-    function getOfflineLocalChatbotEngineResponse(query) {
-      const q = query.toLowerCase();
-      if (q.includes("halo") || q.includes("hai") || q.includes("hey") || q.includes("pagi") || q.includes("siang") || q.includes("sore") || q.includes("malam")) {
-        return "Halo kawan kuliner! Selamat datang di **Luxe Bites**. Saya asisten koki cerdas Anda. Ada menu Nusantara lezat, daging steak lumer bergizi, atau dessert penutup manis yang ingin Anda tanyakan? 🌸 Chef siap melayani!";
-      }
-      if (q.includes("rekomendasi") || q.includes("rekomendasiin") || q.includes("spesial") || q.includes("paling enak") || q.includes("favorit")) {
-        return "Menu terlaris utama kami adalah **Sate Madura Authentic** (Rp 22.000) dan **Nasi Goreng Kampung Spesial** (Rp 18.000). Untuk selera Western, cobalah **Creamy Carbonara Fettuccine** dan **Beef Burger Supreme Melt** yang lumer tebal! Nikmat tiada tara.";
-      }
-      if (q.includes("steak") || q.includes("daging") || q.includes("katsu") || q.includes("burger")) {
-        return "Bagi pecinta petualangan daging, cobalah **Premium Crispy Chicken Steak** garing disiram saus lada hitam kental pedas-manis (Rp 30.000) atau **Beef Burger Supreme Melt** yang super padat!";
-      }
-      if (q.includes("murah") || q.includes("hemat") || q.includes("harga")) {
-        return "Kami menyajikan camilan istimewa yang hemat di kantong, misalnya **Es Teh Jasmin Jumbo Craft** super pekat seharga Rp 4.000, serta kentang goreng krispi Prancis seharga Rp 12.000.";
-      }
-      if (q.includes("minum") || q.includes("segar") || q.includes("jus") || q.includes("kopi")) {
-        return "Untuk kesegaran murni tanpa pemanis buatan, silakan pesan **Es Jeruk Peras Alami Segar** (Rp 7.000). Jika kawan menyukai aroma kopi Arabika, cobalah **Premium Iced Caffe Latte** (Rp 15.000) kami!";
-      }
-      return "Sajian istimewa berkelas perpaduan rasa timur dan barat dapat kawan nikmati di Luxe Bites. Tanyakan rekomendasi menu, keasalan resep kuliner, atau sekadar sapa koki kami!";
-    }
+    function renderChat() {
+      const container = document.getElementById("chatHistory");
+      container.innerHTML = state.aiChatHistory.map(entry => {
+        const isBot = entry.role === 'bot';
+        const floatDirect = isBot ? 'justify-start' : 'justify-end';
+        const bgBubble = isBot 
+          ? 'bg-slate-905 border border-slate-850 text-slate-350 rounded-tl-none' 
+          : 'bg-brand-500 text-slate-950 font-bold rounded-tr-none';
 
-    // -------------------------------------------------------------
-    // CHECKOUT ORDER PROCESSING FLOW
-    // -------------------------------------------------------------
-    function triggerCheckoutFlow() {
-      if (state.cart.length === 0) return;
+        // Support markdown formatting for bot responses
+        const textFormatted = isBot ? marked.parse(entry.text) : entry.text;
 
-      if (state.orderType === 'Dine In' && !state.selectedTable) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Nomor Meja Kosong',
-          text: 'Silakan pilih nomor meja duduk Anda terlebih dahulu untuk memulai pesanan makan di sini.',
-          background: state.isDarkMode ? '#0f1322' : '#ffffff',
-          color: state.isDarkMode ? '#eef0f5' : '#1e293b',
-          confirmButtonColor: '#c9a84c'
-        });
-        openTableSelector();
-        return;
-      }
-
-      // Check Payment Method
-      if (state.paymentMethod === 'QRIS') {
-        const subtotal = state.cart.reduce((s, x) => s + (x.price * x.qty), 0);
-        const tax = Math.round(subtotal * 0.11);
-        const grandTotal = subtotal + tax;
-
-        Swal.fire({
-          title: 'Luxe Cashless QRIS',
-          html: `
-            <div class="flex flex-col items-center justify-center p-3 font-sans">
-              <p class="mb-4 text-xs text-center">Silakan pindai QRIS standar bank berikut dengan aplikasi dompet digital Anda untuk melunasi tagihan:<br/><b class="text-lg text-amber-500 font-mono inline-block mt-1">Rp ${grandTotal.toLocaleString('id-ID')}</b></p>
-              <div class="bg-white p-4 border-2 border-amber-500/10 rounded-xl inline-block shadow-md">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=LUXEBITES-PAYMENT-${grandTotal}" alt="QRIS Standard" class="mx-auto block" />
-              </div>
-              <p class="text-[10px] mt-3 font-mono text-slate-500 text-center">NFC SECURE PAY — TAX INCLUDED • LUXE-TRX-${Math.floor(1000 + Math.random() * 9000)}</p>
-            </div>
-          `,
-          showCancelButton: true,
-          confirmButtonText: 'Konfirmasi Pembayaran',
-          cancelButtonText: 'Kembali',
-          confirmButtonColor: '#10b981',
-          cancelButtonColor: '#ef4444',
-          background: state.isDarkMode ? '#0f1322' : '#ffffff',
-          color: state.isDarkMode ? '#eef0f5' : '#1e293b'
-        }).then((result) => {
-          if (result.isConfirmed) {
-            processCheckout();
-          }
-        });
-      } else {
-        processCheckout();
-      }
-    }
-
-    async function processCheckout() {
-      Swal.fire({
-        title: 'Mengirim Pesanan Ke Chef...',
-        html: 'Menyiapkan bahan premium rasa terbaik, mohon tunggu sebentar kawan.',
-        allowOutsideClick: false,
-        background: state.isDarkMode ? '#0f1322' : '#ffffff',
-        color: state.isDarkMode ? '#eef0f5' : '#1e293b',
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-
-      const code = 'LUXE-' + Math.floor(1000 + Math.random() * 9000);
-      const subtotal = state.cart.reduce((s, x) => s + (x.price * x.qty), 0);
-      const tax = Math.round(subtotal * 0.11);
-      const grandTotal = subtotal + tax;
-
-      const orderPayload = {
-        order_code: code,
-        table_number: state.orderType === 'Take Away' ? 'Take Away' : (state.selectedTable || 'Dine In'),
-        order_type: state.orderType,
-        payment_method: state.paymentMethod,
-        items: state.cart,
-        subtotal: subtotal,
-        tax: tax,
-        grand_total: grandTotal,
-        status: 'pending'
-      };
-
-      // Push to Supabase & local storage
-      await insertDbOrder(orderPayload);
-
-      // Clear Cart
-      state.cart = [];
-      renderCartUI();
-
-      // Launch Confetti Party
-      confetti({
-        particleCount: 130,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#c9a84c', '#475569', '#10b981', '#f59e0b']
-      });
-
-      Swal.close();
-      openDigitalReceiptModal(orderPayload);
-    }
-
-    function openDigitalReceiptModal(order) {
-      let itemsText = "";
-      order.items.forEach(item => {
-        itemsText += `• ${item.name} x${item.qty}\n  @Rp ${item.price.toLocaleString('id-ID')} -> Rp ${(item.price * item.qty).toLocaleString('id-ID')}\n`;
-      });
-
-      const receiptHtml = `
-        <div class="text-left font-mono text-xs text-slate-800 bg-[#f8fafc] p-4 rounded-xl border border-slate-200 shadow-inner max-h-[350px] overflow-y-auto leading-relaxed whitespace-pre-wrap">
-======================================
-              LUXE BITES
-        SISTEM ORDER MANDIRI
-======================================
-Kode Order : ${order.order_code}
-No Meja    : ${order.table_number}
-Tipe       : ${order.order_type}
-Metode     : ${order.payment_method}
-Waktu      : ${new Date().toLocaleString('id-ID')}
---------------------------------------
-DAFTAR SAJIAN:
-${itemsText}
---------------------------------------
-Subtotal   : Rp ${order.subtotal.toLocaleString('id-ID')}
-Pajak (11%): Rp ${order.tax.toLocaleString('id-ID')}
-======================================
-TOTAL      : Rp ${order.grand_total.toLocaleString('id-ID')}
-======================================
-Terima Kasih atas Kunjungan Anda, kawan!
-Silakan tunggu di meja, Chef segera memasak.
-        </div>
-      `;
-
-      Swal.fire({
-        title: 'Struk Pesanan Digital',
-        html: receiptHtml,
-        showDenyButton: true,
-        confirmButtonText: 'Cetak Laporan',
-        denyButtonText: 'Berikan Feedback',
-        confirmButtonColor: '#c9a84c',
-        denyButtonColor: '#10b981',
-        background: state.isDarkMode ? '#0f1322' : '#ffffff',
-        color: state.isDarkMode ? '#eef0f5' : '#1e293b'
-      }).then((res) => {
-        if (res.isConfirmed) {
-          window.print();
-          launchReviewSystem(order.order_code, order.table_number);
-        } else if (res.isDenied) {
-          launchReviewSystem(order.order_code, order.table_number);
-        }
-      });
-    }
-
-    // Customer Stars Feedback Reviews System
-    function launchReviewSystem(orderCode, tableNumber) {
-      let selectedRating = 5;
-
-      const getStarsMarkup = (sc) => {
         return `
-          <div class="flex justify-center gap-3 my-4 text-3xl" id="sweetStarContainer">
-            ${[1, 2, 3, 4, 5].map(v => `
-              <button type="button" class="star-btn outline-none hover:scale-115 transition-transform ${v <= sc ? 'text-yellow-400' : 'text-slate-400'}" data-score="${v}">★</button>
-            `).join('')}
+          <div class="flex ${floatDirect} w-full transition-all duration-300">
+            <div class="max-w-[85%] px-3 py-2 rounded-xl text-[11px] leading-relaxed shadow ${bgBubble} prose prose-invert font-sans">
+              ${textFormatted}
+            </div>
           </div>
         `;
-      };
+      }).join('');
 
-      Swal.fire({
-        title: 'Bintang Review Kawan',
-        html: `
-          <p class="text-xs text-slate-400 mt-1">Berikan masukan cita rasa kuliner & kebersihan saji kami pada Chef Executive Luxe Bites:</p>
-          <div id="starInputRow">${getStarsMarkup(selectedRating)}</div>
-          <input type="text" id="reviewCustomerName" placeholder="Nama Anda (Opsional)" class="w-full text-xs bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 outline-none mb-3 text-slate-800 dark:text-slate-100">
-          <textarea id="reviewComments" placeholder="Saran cita rasa rasa bumbu kuliner masakan koki..." class="w-full text-xs h-16 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 outline-none text-slate-800 dark:text-slate-100 block"></textarea>
-        `,
-        confirmButtonText: 'Kirim Masukan',
-        confirmButtonColor: '#10b981',
-        background: state.isDarkMode ? '#0f1322' : '#ffffff',
-        color: state.isDarkMode ? '#eef0f5' : '#1e293b',
-        didOpen: () => {
-          // Binding live clicks to stars
-          const starsClickRegister = () => {
-            const btns = document.querySelectorAll(".star-btn");
-            btns.forEach(btn => {
-              btn.addEventListener("click", (e) => {
-                selectedRating = parseInt(e.target.getAttribute("data-score") || "5");
-                document.getElementById("starInputRow").innerHTML = getStarsMarkup(selectedRating);
-                starsClickRegister();
-              });
-            });
-          };
-          starsClickRegister();
-        }
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          const name = document.getElementById("reviewCustomerName").value.trim() || "Kawan Anonim";
-          const comments = document.getElementById("reviewComments").value.trim() || "Cita rasa makanan sangat lezat berkelas kemewahan!";
-          
-          const payload = {
-            order_code: orderCode,
-            table_number: tableNumber,
-            customer_name: name,
-            rating: selectedRating,
-            comments: comments,
-            created_at: new Date().toISOString()
-          };
-
-          await insertDbReview(payload);
-
-          Swal.fire({
-            icon: 'success',
-            title: 'Terima Kasih Kawan!',
-            text: 'Tanggapan telah terkirim kepada Management Chef kuliner kami.',
-            confirmButtonColor: '#c9a84c',
-            background: state.isDarkMode ? '#0f1322' : '#ffffff',
-            color: state.isDarkMode ? '#eef0f5' : '#1e293b'
-          });
-        }
-      });
+      // Autoscroll chat history bottom
+      container.scrollTop = container.scrollHeight;
     }
 
-    // Display order history in popup
+    // -------------------------------------------------------------
+    // COMPLETED TRANSACTION HISTORY RECEIPT SYSTEM
+    // -------------------------------------------------------------
     function showHistory() {
       const history = getLocalOrders();
       if (history.length === 0) {
         Swal.fire({
-          title: 'Belum Ada Transaksi',
-          text: 'Anda belum memesan sajian mewah hari ini. Berminat memesan racikan koki terbaik?',
+          title: 'Riwayat Kosong',
+          text: 'Anda belum memesan makanan lezat apa pun hari ini kawan.',
           icon: 'info',
           confirmButtonColor: '#c9a84c',
           background: state.isDarkMode ? '#0f1322' : '#ffffff',
@@ -1274,10 +1444,10 @@ Silakan tunggu di meja, Chef segera memasak.
       }
 
       let listHtml = `
-        <div class="text-left max-h-[300px] overflow-y-auto pr-1">
-          <div class="flex justify-between items-center mb-4 border-b border-amber-500/10 pb-2">
-            <span class="text-[9px] text-slate-500 uppercase font-mono">Ketuk struk untuk mencetak</span>
-            <button id="clearHistoryBtn" class="text-[9px] bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white px-2 py-1 rounded font-sans transition-colors cursor-pointer uppercase font-bold">Clear All</button>
+        <div class="text-left py-2 font-mono scrollbar-none max-h-[300px] overflow-y-auto">
+          <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
+            <span class="text-[10px] text-slate-500 font-bold uppercase">DAFTAR TRANSAKSI LOKAL</span>
+            <button id="clearHistoryBtn" class="text-[9px] text-red-500 border border-red-500/20 px-2 py-0.5 rounded hover:bg-red-500 hover:text-white transition-colors cursor-pointer">Hapus Semua</button>
           </div>
       `;
 
@@ -1354,6 +1524,101 @@ Silakan tunggu di meja, Chef segera memasak.
       });
     }
 
+    // -------------------------------------------------------------
+    // DYNAMIC FEEDBACK & REVIEWS SYSTEM MODAL
+    // -------------------------------------------------------------
+    async function launchReviewSystem(orderCode, tableNumber) {
+      const { value: formValues } = await Swal.fire({
+        title: 'Beri Feedback Citarasa',
+        background: state.isDarkMode ? '#0e1423' : '#ffffff',
+        color: state.isDarkMode ? '#e5e9f2' : '#1f2937',
+        confirmButtonColor: '#c9a84c',
+        confirmButtonText: 'Kirim Ulasan',
+        showCancelButton: true,
+        cancelButtonText: 'Batal',
+        html: `
+          <div class="text-left space-y-4 font-sans text-xs pt-2">
+            <div>
+              <label class="block font-bold mb-1 text-slate-350">Nama Kawan Kuliner</label>
+              <input id="swal-input-name" placeholder="Contoh: Budi Santoso" class="w-full px-3 py-2 rounded bg-slate-900 border border-slate-800 text-slate-100 outline-none focus:border-brand-500/40">
+            </div>
+            <div>
+              <label class="block font-bold mb-1 text-slate-350">Rating Hidangan (1 - 5 Bintang)</label>
+              <select id="swal-input-rating" class="w-full px-3 py-2 rounded bg-slate-900 border border-slate-800 text-slate-100 outline-none focus:border-brand-500/40">
+                <option value="5" selected>★★★★★ Sempurna Sekali (5 Bintang)</option>
+                <option value="4">★★★★ Sangat Enak (4 Bintang)</option>
+                <option value="3">★★★ Cukup Baik (3 Bintang)</option>
+                <option value="2">★★ Kurang Sesuai (2 Bintang)</option>
+                <option value="1">★ Butuh Pembenahan (1 Bintang)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold mb-1 text-slate-350">Komentar & Catatan Citarasa</label>
+              <textarea id="swal-input-comments" placeholder="Ceritakan kelezatan hidangan atau keramahan layanan kami kawan..." rows="3" class="w-full px-3 py-2 rounded bg-slate-900 border border-slate-800 text-slate-100 outline-none focus:border-brand-500/40 resize-none"></textarea>
+            </div>
+          </div>
+        `,
+        focusConfirm: false,
+        preConfirm: () => {
+          const name = document.getElementById('swal-input-name').value.trim() || "Kawan Anonim";
+          const rating = parseInt(document.getElementById('swal-input-rating').value);
+          const comments = document.getElementById('swal-input-comments').value.trim() || "Citarasa luar biasa!";
+          return { name, rating, comments };
+        }
+      });
+
+      if (formValues) {
+        Swal.fire({
+          title: 'Mengirimkan Ulasan...',
+          allowOutsideClick: false,
+          background: state.isDarkMode ? '#0f1322' : '#ffffff',
+          color: state.isDarkMode ? '#eef0f5' : '#1e293b',
+          didOpen: () => { Swal.showLoading(); }
+        });
+
+        const reviewPayload = {
+          order_code: orderCode,
+          table_number: tableNumber,
+          customer_name: formValues.name,
+          rating: formValues.rating,
+          comments: formValues.comments,
+          created_at: new Date().toISOString()
+        };
+
+        await insertDbReview(reviewPayload);
+
+        Swal.close();
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Ulasan Terkirim!',
+          text: 'Terima kasih banyak kawan atas feedback berharganya untuk kemajuan Luxe Bites!',
+          confirmButtonColor: '#c9a84c',
+          background: state.isDarkMode ? '#0f1322' : '#ffffff',
+          color: state.isDarkMode ? '#eef0f5' : '#1e293b'
+        });
+      }
+    }
+
   </script>
+
+  <!-- MOBILE BOTTOM TAB NAV BAR (OPTIMIZED FOR ANDROID PORTRAIT) -->
+  <div class="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-slate-950/90 backdrop-blur-md border-t border-slate-800/80 px-4 py-2 flex justify-around items-center shadow-lg shadow-black/80">
+    <button id="btnMobileCatalog" onclick="switchMobileTab('catalog')" class="flex flex-col items-center justify-center p-2 text-brand-400 font-bold transition-all cursor-pointer">
+      <i data-lucide="utensils-crossed" class="w-5 h-5 mb-0.5"></i>
+      <span class="text-[9px] font-mono tracking-wider">Sajian</span>
+    </button>
+    <button id="btnMobileChat" onclick="switchMobileTab('chat')" class="flex flex-col items-center justify-center p-2 text-slate-500 transition-all cursor-pointer relative">
+      <i data-lucide="bot" class="w-5 h-5 mb-0.5"></i>
+      <span class="text-[9px] font-mono tracking-wider">Tanya AI</span>
+      <span class="absolute top-1.5 right-4 w-2 h-2 bg-emerald-500 rounded-full border border-slate-950 animate-pulse"></span>
+    </button>
+    <button id="btnMobileCart" onclick="switchMobileTab('cart')" class="flex flex-col items-center justify-center p-2 text-slate-500 transition-all cursor-pointer relative">
+      <i data-lucide="shopping-bag" class="w-5 h-5 mb-0.5"></i>
+      <span class="text-[9px] font-mono tracking-wider">Keranjang</span>
+      <span id="mobileCartCounterBadge" class="absolute top-1 right-2 hidden bg-brand-500 text-slate-950 text-[8px] font-extrabold h-4 min-w-4 px-1 rounded-full items-center justify-center border border-slate-950">0</span>
+    </button>
+  </div>
+
 </body>
 </html>

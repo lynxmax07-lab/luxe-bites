@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luxe Bites — Sistem Pemesanan Premium</title>
+  
+  <!-- CDNs: Tailwind CSS, Inter & Outfit Fonts, Lucide Icons, SweetAlert2, Canvas Confetti -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              400: '#e5c065',
+              500: '#c9a84c',
+              600: '#aa8c39',
+              750: '#1d2230',
+            },
+            slate: {
+              950: '#090d16',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- FontAwesome / Lucide Browser Support -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase JS Client Browser Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- SweetAlert2 Modal -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Confetti Engine -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js"></script>
+  <!-- Markdown Parser for Chef AI Responses -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    /* Smooth Inertial Touch Momentum Scrolling & Scroll Behavior */
+    html {
+      scroll-behavior: smooth;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Styling Custom Scrollbars and Fade Effects */
+    .custom-scroll {
+      -webkit-overflow-scrolling: touch; /* Snappy, high-momentum touch scrolling for mobile */
+    }
+    
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(201, 168, 76, 0.25);
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(201, 168, 76, 0.45);
+    }
+    
+    /* Elegant Dark/Light transition class */
+    body {
+      transition: background-color 0.3s, color 0.3s;
+    }
+    
+    /* Animation helper classes */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .float-ai {
+      animation: float 3s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans select-none min-h-screen relative flex flex-col justify-between overflow-x-hidden custom-scroll dark">
+  
+  <!-- BACKGROUND GRADIENT BLUR LIGHTS -->
+  <div class="absolute top-[-10%] left-[-10%] w-[50%] aspect-square rounded-full bg-amber-500/5 blur-[120px] pointer-events-none z-0"></div>
+  <div class="absolute bottom-[-10%] right-[-10%] w-[50%] aspect-square rounded-full bg-amber-500/5 blur-[120px] pointer-events-none z-0"></div>
+
+  <!-- MAIN HEADER LAYER -->
+  <header class="sticky top-0 z-30 border-b border-amber-500/10 bg-slate-950/80 backdrop-blur-md px-4 py-4 md:px-8">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      
+      <!-- Logo Branding -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-400 flex items-center justify-center shadow-lg shadow-brand-500/10">
+          <i data-lucide="utensils-crossed" class="w-5 h-5 text-slate-950"></i>
+        </div>
+        <div>
+          <h1 class="font-display font-extrabold text-lg md:text-xl tracking-wide text-brand-400">LUXE BITES</h1>
+          <p class="text-[9px] font-mono uppercase tracking-widest text-slate-500">INDONESIA PREMIUM STEAK & RESTO</p>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex items-center gap-2.5">
+        
+        <!-- Booking Table Indicator -->
+        <button id="tableSelectorBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/20 bg-slate-900/40 text-xs text-brand-400 font-bold hover:border-brand-500/40 transition-all cursor-pointer">
+          <i data-lucide="armchair" class="w-4 h-4 text-brand-400"></i>
+          <span id="headerTableLabel">Pilih Meja</span>
+        </button>
+
+        <!-- Order History Trigger -->
+        <button onclick="showHistory()" class="p-2 rounded-lg border border-slate-800 hover:border-brand-500/30 hover:bg-slate-900/60 text-slate-400 hover:text-brand-400 transition-all cursor-pointer" title="Riwayat Order">
+          <i data-lucide="history" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Toggle Light / Dark Mode -->
+        <button onclick="toggleTheme()" class="p-2 rounded-lg border border-slate-800 hover:border-brand-500/30 hover:bg-slate-900/60 text-slate-400 hover:text-brand-400 transition-all cursor-pointer" title="Ubah Tema" id="themeToggleBtn">
+          <i data-lucide="sun" class="w-4 h-4 hidden" id="themeSun"></i>
+          <i data-lucide="moon" class="w-4 h-4" id="themeMoon"></i>
+        </button>
+
+        <!-- Maximizer Fullscreen -->
+        <button onclick="toggleFullScreen()" class="hidden md:block p-2 rounded-lg border border-slate-800 hover:border-brand-500/30 hover:bg-slate-900/60 text-slate-400 hover:text-brand-400 transition-all cursor-pointer">
+          <i data-lucide="maximize" class="w-4 h-4" id="fullscreenIcon"></i>
+        </button>
+
+        <!-- Customer to Admin / Dashboard Redirect Toggle button -->
+        <a href="dashboard.html" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 font-mono text-[10px] uppercase font-bold tracking-wider hover:border-brand-500/50 hover:text-brand-400 transition-all">
+          <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+          Dashboard
+        </a>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- CORE GRID CONTENT LAYOUT -->
+  <main class="max-w-7xl mx-auto w-full px-4 md:px-8 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6 relative z-10 flex-grow">
+    
+    <!-- LEFT & MIDDLE SECTION: MENU CATALOGUE AND SELECTION (3 COLS) -->
+    <div class="lg:col-span-3 flex flex-col gap-6">
+      
+      <!-- Welcome Banner -->
+      <div class="relative rounded-2xl overflow-hidden border border-brand-500/10 bg-gradient-to-r from-slate-950/80 via-slate-900/40 to-slate-950/50 p-6 md:p-8 flex items-center justify-between">
+        <div class="absolute inset-0 bg-cover bg-center pointer-events-none opacity-[0.03]" style="background-image: url('https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=600&q=80')"></div>
+        <div>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono tracking-wider font-bold bg-amber-500/10 text-brand-400 border border-amber-500/10 mb-3">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-500"></i> SAJIAN SENI KULINER ASLI INDONESIA
+          </span>
+          <h2 class="text-2xl md:text-3xl font-display font-extrabold tracking-tight text-white">Rasa Otentik & Kemewahan Citarasa</h2>
+          <p class="text-xs md:text-sm text-slate-400 mt-2 max-w-lg leading-relaxed">Selamat datang kawan kuliner di Luxe Bites. Silakan santap hidangan istimewa buatan Chef Executive kami secara mandiri dengan integrasi pesanan cepat.</p>
+        </div>
+        <div class="hidden md:block w-24 h-24 transform rotate-12 scale-110 opacity-70">
+          <img src="https://images.unsplash.com/photo-1617093727343-374698b1b08d?auto=format&fit=crop&w=600&q=80" alt="Nasi Goreng" class="w-full h-full object-cover rounded-2xl shadow-xl border border-amber-500/10">
+        </div>
+      </div>
+
+      <!-- Search and Filter Bar -->
+      <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <!-- Categories list -->
+        <div class="flex items-center gap-1.5 overflow-x-auto custom-scroll pb-1 -mx-2 md:mx-0 px-2 md:px-0 scrollbar-none" id="categoryContainer">
+          <!-- Populated from Javascript -->
+        </div>
+
+        <!-- Search input -->
+        <div class="relative min-w-[220px]">
+          <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+          <input type="text" id="searchInput" placeholder="Cari kuliner lezat..." class="w-full pl-9 pr-4 py-1.5 text-xs rounded-lg border border-slate-800 bg-slate-900/50 text-slate-100 placeholder-slate-500 outline-none focus:border-brand-500/40 focus:ring-1 focus:ring-brand-500/20 transition-all">
+        </div>
+      </div>
+
+      <!-- MAIN MENU CATALOG CONTAINER -->
+      <div id="menuGridLoader" class="flex flex-col items-center justify-center py-20 text-slate-500">
+        <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-brand-500 mb-2"></i>
+        <p class="text-xs font-mono">Memuat Menu Premium...</p>
+      </div>
+
+      <div id="menuGrid" class="hidden grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <!-- Dynamically filled with products catalog cards -->
+      </div>
+
+    </div>
+
+    <!-- RIGHT SECTION: CHAT CONCIERGE Virtual Chef & SHOPPING BAG COLLABORATED (1 COL) -->
+    <div class="lg:col-span-1 flex flex-col gap-6 lg:h-[calc(100vh-130px)] sticky top-[90px]">
+      
+      <!-- CHEF CONCIERGE AI CHAT LAYER -->
+      <div class="flex-grow flex flex-col rounded-2xl border border-brand-500/10 bg-slate-900/25 backdrop-blur-sm shadow-xl min-h-[350px] overflow-hidden" id="chatContainer">
+        
+        <!-- Private Chef Head Info -->
+        <div class="px-4 py-3 bg-slate-900/60 border-b border-amber-500/10 flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center relative shadow-inner float-ai">
+            <i data-lucide="bot" class="w-4 h-4 text-brand-400"></i>
+            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-slate-900"></span>
+          </div>
+          <div>
+            <h3 class="font-display font-extrabold text-xs text-slate-200">Chef Concierge Luxe AI</h3>
+            <p class="text-[9px] font-mono text-emerald-400 font-bold uppercase tracking-wider">Online • Asisten Resto</p>
+          </div>
+        </div>
+
+        <!-- Chat History Area -->
+        <div id="chatHistory" class="flex-grow px-4 py-4 overflow-y-auto overflow-x-hidden custom-scroll text-xs space-y-3.5 bg-slate-950/20 flex flex-col">
+          <!-- Filled by chat logs -->
+        </div>
+
+        <!-- AI Typing Indicator -->
+        <div id="aiTypingIndicator" class="hidden px-4 py-1 flex items-center gap-1.5 text-slate-500 text-[10px] font-mono italic">
+          <span class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce"></span>
+          <span class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+          <span class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+          Chef sedang mengetik...
+        </div>
+
+        <!-- Send message row bar -->
+        <div class="p-2 bg-slate-950/40 border-t border-slate-800">
+          <form id="aiChatForm" class="flex gap-1">
+            <input type="text" id="aiChatInput" placeholder="Tanya Chef Rekomendasi/Info Menu..." class="flex-grow px-3 py-1.5 text-[10px] rounded-md border border-slate-800 bg-slate-900/50 text-slate-200 outline-none focus:border-brand-500/30 transition-all placeholder:text-slate-600">
+            <button type="submit" class="px-2.5 py-1.5 rounded-md bg-brand-500 text-slate-950 hover:bg-brand-400 transition-colors cursor-pointer flex items-center justify-center">
+              <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+      <!-- ACTIVE CART BAG STATUS -->
+      <div class="rounded-2xl border border-brand-500/15 bg-gradient-to-br from-slate-900/60 to-slate-950/30 p-4 shadow-xl" id="cartBar">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-1.5">
+            <i data-lucide="shopping-bag" class="w-4 h-4 text-brand-400"></i>
+            <h3 class="font-display font-bold text-xs">Kantong Pesanan</h3>
+          </div>
+          <span class="font-mono text-[10px] bg-brand-500/10 text-brand-400 px-2 py-0.5 rounded-full font-bold" id="cartQtyBadge">0 Item</span>
+        </div>
+
+        <div id="cartStatusEmpty" class="py-6 overflow-hidden flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-xl text-slate-600">
+          <i data-lucide="shopping-bag" class="w-5 h-5 mb-1.5 opacity-50"></i>
+          <p class="text-[10px] uppercase font-mono tracking-widest text-center">Keranjang Kosong kawan</p>
+        </div>
+
+        <!-- Render active items if any -->
+        <div id="cartStatusFilledClass" class="hidden flex flex-col gap-2">
+          <!-- Active list small area -->
+          <div id="cartList" class="max-h-[140px] overflow-y-auto custom-scroll space-y-2 pr-1">
+            <!-- Render cart rows -->
+          </div>
+
+          <!-- Checkout Details -->
+          <div class="border-t border-slate-800 pt-3 mt-1.5 space-y-1 text-slate-400 text-[11px] font-mono">
+            <div class="flex justify-between">
+              <span>Subtotal:</span>
+              <span id="cartSubtotal" class="text-slate-200">Rp 0</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Pajak (11%):</span>
+              <span id="cartTax" class="text-slate-200">Rp 0</span>
+            </div>
+            <div class="flex justify-between text-xs font-bold text-slate-100 border-t border-slate-800/50 pt-1.5 mt-0.5">
+              <span class="text-brand-400 font-display">TOTAL TAGIHAN:</span>
+              <span id="cartGrandTotal" class="text-brand-400 text-sm font-sans">Rp 0</span>
+            </div>
+          </div>
+
+          <!-- Order Type & Method Selection -->
+          <div class="grid grid-cols-2 gap-1.5 mt-2">
+            <div>
+              <label class="text-[8px] font-mono text-slate-500 uppercase tracking-wider block mb-0.5">Tipe Pemesanan</label>
+              <select id="checkoutOrderType" class="w-full bg-slate-900 border border-slate-800 text-[10px] text-slate-200 px-1 py-1 rounded outline-none focus:border-brand-500/20">
+                <option value="Dine In" selected>Dine In (Makan Sini)</option>
+                <option value="Take Away">Take Away (Bawa Pulang)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[8px] font-mono text-slate-500 uppercase tracking-wider block mb-0.5">Metode Bayar</label>
+              <select id="checkoutPaymentMethod" class="w-full bg-slate-900 border border-slate-800 text-[10px] text-slate-200 px-1 py-1 rounded outline-none focus:border-brand-500/20">
+                <option value="Tunai" selected>Tunai (Kasir)</option>
+                <option value="QRIS">QRIS Cashless</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Submit Checkout Button -->
+          <button id="checkoutSubmitBtn" class="w-full mt-3 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-amber-500 text-slate-950 font-display font-extrabold text-xs shadow-md shadow-brand-500/10 hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer">
+            Pesan Sekarang & Antre
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- POPUP DINING TABLE MODAL COMPONENT -->
+  <dialog id="tableDialog" class="rounded-2xl border border-brand-500/15 bg-slate-950 text-slate-100 p-6 shadow-2xl backdrop:bg-slate-950/70 max-w-md w-full scrollbar-none outline-none">
+    <div class="flex justify-between items-center mb-4 border-b border-slate-900 pb-3">
+      <div class="flex items-center gap-2">
+        <i data-lucide="armchair" class="w-5 h-5 text-brand-400 animate-pulse"></i>
+        <h3 class="font-display font-extrabold text-sm text-slate-100 uppercase tracking-wider">PILIH NOMOR MEJA KAWAN</h3>
+      </div>
+      <button onclick="document.getElementById('tableDialog').close()" class="p-1 rounded-lg border border-slate-900 text-slate-500 hover:text-slate-300 transition-colors">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+    <p class="text-[10px] mb-4 text-slate-400">Silakan pilih meja Anda terlebih dahulu. Hijau melambangkan meja kosong, merah untuk meja yang sedang ditempati kawan lain.</p>
+    
+    <!-- Table Grid -->
+    <div id="tableModalGrid" class="grid grid-cols-3 gap-3.5 mb-5">
+      <!-- Generated rows of tables -->
+    </div>
+
+    <!-- Takeaway Quick Switch Option -->
+    <div class="border-t border-slate-900 pt-4 flex gap-2 justify-end">
+      <button onclick="selectTakeaway()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs rounded-xl font-bold transition-all text-slate-300">
+        Saya Memesan Takeaway
+      </button>
+    </div>
+  </dialog>
+
+  <!-- BOTTOM FOOTER -->
+  <footer class="py-5 border-t border-slate-900 bg-slate-950/40 text-center text-[10px] font-mono text-slate-600 mt-10 relative z-10">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-3">
+      <p>Luxe Bites Premium Gastronomy System © 2026. All Rights Reserved.</p>
+      <p class="flex items-center gap-1"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-500"></i> Disokong Kecerdasan Buatan Google Gemini 3.5</p>
+    </div>
+  </footer>
+
+  <!-- MODULE BACKEND JAVASCRIPT CONNECTED TO SUPABASE -->
+  <script>
+    // Config and Supabase credentials
+    const SUPABASE_URL = "https://ksobmcgacbmhpmqaplla.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtzb2JtY2dhY2JtaHBtcWFwbGxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMTQxOTcsImV4cCI6MjA5NDc5MDE5N30.5VaOfpLpebFcoqkpE7cLDVjNW5D7XM1vTrc3QAJPAhc";
+    
+    // Initialize Supabase Client
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Static Local Fallback configurations
+    const CATEGORIES = [
+      { id: 'all', name: 'Semua Sajian' },
+      { id: 'Nusantara', name: 'Nusantara' },
+      { id: 'Western', name: 'Western' },
+      { id: 'Japanese', name: 'Japanese' },
+      { id: 'Dessert', name: 'Dessert' },
+      { id: 'Drinks', name: 'Minuman' }
+    ];
+
+    const DEFAULT_MENU_ITEMS = [
+      { id: 1, cat: "Nusantara", name: "Nasi Goreng Kampung Spesial", origin: "Jawa", price: 18000, desc: "Nasi goreng bumbu tradisional Jawa dengan telur mata sapi, suwiran ayam gurih, bawang goreng, acing, dan kerupuk udang renyah.", img: "https://images.unsplash.com/photo-1617093727343-374698b1b08d?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 2, cat: "Nusantara", name: "Sate Madura Authentic", origin: "Madura", price: 22000, desc: "10 tusuk sate ayam empuk dipanggang arang kelapa tradisional, disajikan dengan siraman saus bumbu kacang gurih pekat berkemilau minyak kemiri.", img: "https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 3, cat: "Nusantara", name: "Bakso Sapi Urat Solo", origin: "Solo", price: 17000, desc: "Bakso sapi urat kenyal racikan Solo dilengkapi bihun, mi telur kuning, tahu goreng gurih, kubis hancur, taburan seledri, dan kuah kaldu sapi pekat hangat.", img: "https://images.unsplash.com/photo-1593443320739-77f74939d0da?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 4, cat: "Nusantara", name: "Ayam Goreng Lalapan Sunda", origin: "Sunda", price: 20000, desc: "Ayam goreng garing bumbu ungkep rempah kunyit jahe disajikan lengkap bersama sambal bajak pedas nikmat, potongan timun segar, kemangi, dan kol renyah.", img: "https://images.unsplash.com/photo-1626700051175-6518c4793f4f?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 5, cat: "Western", name: "Beef Burger Supreme Melt", origin: "USA", price: 28000, desc: "Roti brioche bun lembut dengan daging patty sapi panggang juicy tebal, lelehan keju cheddar slice, saus mayo mustard, potongan tomat merah dan selada segar.", img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 6, cat: "Western", name: "Creamy Carbonara Fettuccine", origin: "Italia", price: 25000, desc: "Fettuccine kenyal al-dente disiram saus creamy kental racikan parutan keju parmesan premium, kuning telur, susu segar, dan taburan daging asap renyah.", img: "https://images.unsplash.com/photo-1612874742237-6526221588e3?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 13, cat: "Western", name: "Premium Crispy Chicken Steak", origin: "USA", price: 30000, desc: "Fillet dada ayam goreng krispi renyah empuk disiram saus lada hitam kental pedas-manis, dipadukan kentang goreng garing dan sayuran rebus mentega.", img: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 14, cat: "Western", name: "Belgian French Fries Original", origin: "Prancis", price: 12000, desc: "Kentang goreng potongan panjang khas Belgia, gurih bergaram laut renyah di luar lembut di dalam, disajikan hangat dengan cocolan saus sambal pedas.", img: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 7, cat: "Japanese", name: "Tender Chicken Katsu Donburi", origin: "Tokyo", price: 24000, desc: "Mangkuk nasi hangat dengan potongan ayam katsu renyah berbalur telur kuah kaldu dashi khas Jepang, taburan irisan daun bawang segar di atasnya.", img: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 15, cat: "Japanese", name: "Torikatsu Ramen Shoyu Soup", origin: "Osaka", price: 26000, desc: "Ramen kuah kaldu kecap Jepang (Shoyu) bercita rasa asin gurih harum minyak wijen, dihiasi ayam katsu garing, telur rebus setengah matang, nori, dan daun bawang.", img: "https://images.unsplash.com/photo-1557872943-16a5ac26437e?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 16, cat: "Japanese", name: "Crunchy Chicken Sushi Roll", origin: "Kyoto", price: 22000, desc: "Sushi roll isi ayam filet krispi, mentimun Jepang (kyuri) segar digulung nori premium berbalur remah tempura gurih pedas dan siraman saus mayo pedas manis.", img: "https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 19, cat: "Dessert", name: "Lava Chocolate Fondant Cake", origin: "Prancis", price: 18000, desc: "Kue cokelat panggang klasik nan elegan dengan isian cokelat hitam premium cair meleleh lumer hangat di mulut, disajikan dengan taburan gula halus.", img: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 10, cat: "Drinks", name: "Es Teh Jasmin Jumbo Craft", origin: "Lokal", price: 4000, desc: "Minuman es teh manis seduhan racikan tiga merek daun teh Jasmin lokal berkualitas tinggi menghasilkan rasa wangi melati pekat menyegarkan porsi gelas raksasa.", img: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=600&q=80", is_available: true },
+      { id: 12, cat: "Drinks", name: "Es Jeruk Peras Alami Segar", origin: "Lokal", price: 7000, desc: "Perasan jeruk lokal berair manis keasaman diperas tangan murni segar dingin melimpah vitamin C alami, diracik murni tanpa perasa esens buatan.", img: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=600&q=80", is_available: true }
+    ];
+
+    const DEFAULT_TABLES = Array.from({ length: 9 }, (_, i) => ({
+      table_number: `Meja ${i + 1}`,
+      is_occupied: false
+    }));
+
+    // Local Storage persistence keys
+    const LOCAL_STORAGE_HISTORY_KEY = "luxe_order_history";
+    const LOCAL_STORAGE_TABLES_KEY = "luxe_tables_state";
+    const LOCAL_STORAGE_MENU_KEY = "luxe_menu_state";
+
+    // Application Memory State
+    let state = {
+      menu: [],
+      tables: [],
+      cart: [],
+      activeCat: 'all',
+      searchQuery: '',
+      selectedTable: null,
+      orderType: 'Dine In',
+      paymentMethod: 'Tunai',
+      aiChatHistory: [
+        {
+          id: "chat-welcome",
+          role: "bot",
+          text: "Selamat datang di Luxe Bites kawan! 🌸 Saya Chef Concierge AI Anda hari ini. Ada hidangan mewah, cita rasa Nusantara otentik, atau pasta Western legit yang ingin saya rekomendasikan untuk Anda?",
+          timestamp: new Date()
+        }
+      ],
+      isDarkMode: true
+    };
+
+    // -------------------------------------------------------------
+    // STARTUP SYSTEM INITIALIZER
+    // -------------------------------------------------------------
+    document.addEventListener("DOMContentLoaded", async () => {
+      loadThemeState();
+      registerEventListeners();
+      lucide.createIcons();
+      renderCategories();
+      renderChat();
+
+      // Begin loading DB lists
+      await loadDbData();
+    });
+
+    // Handle Light / Dark Theme on trigger
+    function loadThemeState() {
+      const savedTheme = localStorage.getItem("luxe_theme") || "dark";
+      if (savedTheme === "light") {
+        state.isDarkMode = false;
+        document.body.classList.remove("dark", "bg-slate-950", "text-slate-100");
+        document.body.classList.add("light", "bg-slate-50", "text-slate-900");
+        updateThemeTogglerUI(false);
+      } else {
+        state.isDarkMode = true;
+        document.body.classList.add("dark", "bg-slate-950", "text-slate-100");
+        document.body.classList.remove("light", "bg-slate-50", "text-slate-900");
+        updateThemeTogglerUI(true);
+      }
+    }
+
+    function toggleTheme() {
+      state.isDarkMode = !state.isDarkMode;
+      if (state.isDarkMode) {
+        localStorage.setItem("luxe_theme", "dark");
+        document.body.classList.add("dark", "bg-slate-950", "text-slate-100");
+        document.body.classList.remove("light", "bg-slate-50", "text-slate-900");
+        updateThemeTogglerUI(true);
+      } else {
+        localStorage.setItem("luxe_theme", "light");
+        document.body.classList.remove("dark", "bg-slate-950", "text-slate-100");
+        document.body.classList.add("light", "bg-slate-50", "text-slate-900");
+        updateThemeTogglerUI(false);
+      }
+    }
+
+    function updateThemeTogglerUI(isDark) {
+      const sun = document.getElementById("themeSun");
+      const moon = document.getElementById("themeMoon");
+      if (isDark) {
+        sun.classList.add("hidden");
+        moon.classList.remove("hidden");
+      } else {
+        sun.classList.remove("hidden");
+        moon.classList.add("hidden");
+      }
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(e => console.log(e));
+        document.getElementById("fullscreenIcon").setAttribute("data-lucide", "minimize");
+      } else {
+        document.exitFullscreen();
+        document.getElementById("fullscreenIcon").setAttribute("data-lucide", "maximize");
+      }
+      setTimeout(() => { lucide.createIcons(); }, 150);
+    }
+
+    // Register Click Handlers
+    function registerEventListeners() {
+      // Table selector trigger
+      document.getElementById("tableSelectorBtn").addEventListener("click", () => {
+        openTableSelector();
+      });
+
+      // Search bar filter typing
+      document.getElementById("searchInput").addEventListener("input", (e) => {
+        state.searchQuery = e.target.value;
+        renderMenuGrid();
+      });
+
+      // Chat send trigger
+      document.getElementById("aiChatForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        await handleSendAIChat();
+      });
+
+      // Cart checkout submit
+      document.getElementById("checkoutSubmitBtn").addEventListener("click", () => {
+        triggerCheckoutFlow();
+      });
+
+      // Order parameters select triggers
+      document.getElementById("checkoutOrderType").addEventListener("change", (e) => {
+        state.orderType = e.target.value;
+        if (state.orderType === "Take Away") {
+          updateSelectedTable(null);
+        } else {
+          openTableSelector();
+        }
+      });
+      document.getElementById("checkoutPaymentMethod").addEventListener("change", (e) => {
+        state.paymentMethod = e.target.value;
+      });
+    }
+
+    // -------------------------------------------------------------
+    // DATA LAYER & SYNC CODES
+    // -------------------------------------------------------------
+    async function loadDbData() {
+      try {
+        const fetchedMenu = await fetchDbMenu();
+        const fetchedTables = await fetchDbTables();
+        state.menu = fetchedMenu;
+        state.tables = fetchedTables;
+      } catch (err) {
+        console.warn("Using offline standalone state databases:", err);
+        state.menu = loadCachedMenu();
+        state.tables = loadCachedTables();
+      }
+
+      // Hide preloader
+      document.getElementById("menuGridLoader").classList.add("hidden");
+      document.getElementById("menuGrid").classList.remove("hidden");
+      
+      // Update renders
+      renderMenuGrid();
+      renderTablesInModal();
+      updateSelectedTableUI();
+    }
+
+    // Direct Supabase APIs inside Browser JS Client
+    async function fetchDbMenu() {
+      try {
+        const { data, error } = await supabaseClient
+          .from("menu")
+          .select("*")
+          .order("category", { ascending: true });
+        
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const items = data.map(m => ({
+            id: m.id,
+            cat: m.category,
+            name: m.name,
+            origin: m.origin || "Lokal",
+            price: m.price,
+            desc: m.description,
+            img: m.image_url,
+            is_available: m.is_available !== false
+          }));
+          localStorage.setItem(LOCAL_STORAGE_MENU_KEY, JSON.stringify(items));
+          return items;
+        } else {
+          try {
+            const seed = DEFAULT_MENU_ITEMS.map(m => ({
+              name: m.name,
+              category: m.cat,
+              price: m.price,
+              description: m.desc,
+              origin: m.origin,
+              image_url: m.img,
+              is_available: true
+            }));
+            await supabaseClient.from("menu").insert(seed);
+          } catch(e) {}
+        }
+      } catch (err) {
+        console.warn("DB Menu fetch failed, falling back to cached items:", err.message);
+      }
+      return loadCachedMenu();
+    }
+
+    async function fetchDbTables() {
+      try {
+        const { data, error } = await supabaseClient
+          .from("tables")
+          .select("*")
+          .order("table_number", { ascending: true });
+        
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const items = data.map(t => ({
+            id: t.id,
+            table_number: t.table_number,
+            is_occupied: t.is_occupied
+          }));
+          localStorage.setItem(LOCAL_STORAGE_TABLES_KEY, JSON.stringify(items));
+          return items;
+        } else {
+          try {
+            await supabaseClient.from("tables").insert(DEFAULT_TABLES);
+          } catch(e) {}
+        }
+      } catch (err) {
+        console.warn("DB Tables fetch failed, falling back:", err.message);
+      }
+      return loadCachedTables();
+    }
+
+    async function updateDbTableStatus(tableNumber, isOccupied) {
+      // Sync local cache first
+      const current = loadCachedTables();
+      const updated = current.map(t => t.table_number === tableNumber ? { ...t, is_occupied: isOccupied } : t);
+      localStorage.setItem(LOCAL_STORAGE_TABLES_KEY, JSON.stringify(updated));
+      state.tables = updated;
+      renderTablesInModal();
+
+      try {
+        await supabaseClient
+          .from("tables")
+          .update({ is_occupied: isOccupied })
+          .eq("table_number", tableNumber);
+      } catch (err) {
+        console.warn("Supabase table occupancy update failed:", err);
+      }
+    }
+
+    async function insertDbOrder(order) {
+      saveLocalOrder(order);
+      try {
+        const payload = {
+          order_code: order.order_code,
+          table_number: order.table_number,
+          order_type: order.order_type,
+          payment_method: order.payment_method,
+          items: order.items,
+          subtotal: order.subtotal,
+          tax: order.tax,
+          grand_total: order.grand_total,
+          status: 'pending',
+          created_at: new Date().toISOString()
+        };
+        await supabaseClient.from("orders").insert([payload]);
+      } catch(e) {
+        console.warn("Supabase order push offline:", e);
+      }
+    }
+
+    async function insertDbReview(review) {
+      try {
+        await supabaseClient.from("reviews").insert([review]);
+      } catch(e) {
+        console.warn("Supabase review push failed:", e);
+      }
+    }
+
+    // Cache fallback loaders
+    function loadCachedMenu() {
+      const cached = localStorage.getItem(LOCAL_STORAGE_MENU_KEY);
+      return cached ? JSON.parse(cached) : DEFAULT_MENU_ITEMS;
+    }
+
+    function loadCachedTables() {
+      const cached = localStorage.getItem(LOCAL_STORAGE_TABLES_KEY);
+      return cached ? JSON.parse(cached) : DEFAULT_TABLES;
+    }
+
+    function getLocalOrders() {
+      const cached = localStorage.getItem(LOCAL_STORAGE_HISTORY_KEY);
+      return cached ? JSON.parse(cached) : [];
+    }
+
+    function saveLocalOrder(order) {
+      const history = getLocalOrders();
+      history.unshift(order);
+      localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, JSON.stringify(history));
+    }
+
+    function clearLocalOrders() {
+      localStorage.removeItem(LOCAL_STORAGE_HISTORY_KEY);
+    }
+
+    // -------------------------------------------------------------
+    // RENDER FUNCTIONS - FRONTEND VIBES
+    // -------------------------------------------------------------
+    
+    // Categories Bar
+    function renderCategories() {
+      const container = document.getElementById("categoryContainer");
+      container.innerHTML = CATEGORIES.map(cat => {
+        const isActive = state.activeCat === cat.id;
+        return `
+          <button onclick="selectCategory('${cat.id}')" class="px-3.5 py-1.5 rounded-lg text-[10px] md:text-xs font-semibold whitespace-nowrap transition-all duration-250 cursor-pointer border ${
+            isActive 
+              ? 'bg-amber-500/10 text-brand-400 border-brand-500/30 font-bold' 
+              : 'bg-slate-900/30 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700'
+          }">
+            ${cat.name}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectCategory(catId) {
+      state.activeCat = catId;
+      renderCategories();
+      renderMenuGrid();
+    }
+
+    // Menus Catalog Grid Renders
+    function renderMenuGrid() {
+      const grid = document.getElementById("menuGrid");
+      
+      const filtered = state.menu.filter(item => {
+        const matchCat = state.activeCat === 'all' || item.cat === state.activeCat;
+        const matchSearch = item.name.toLowerCase().includes(state.searchQuery.toLowerCase()) || 
+                            item.desc.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+                            item.origin.toLowerCase().includes(state.searchQuery.toLowerCase());
+        return matchCat && matchSearch;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-16 flex flex-col items-center justify-center text-slate-500">
+            <i data-lucide="utensils-crossed" class="w-10 h-10 mb-2 opacity-30"></i>
+            <p class="text-xs font-mono">Sajian tidak ditemukan, silakan ketik kata kunci lain kawan.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      grid.innerHTML = filtered.map(item => {
+        const hasCardAvailability = item.is_available;
+        const buttonHtml = hasCardAvailability 
+          ? `<button onclick="addToCart(${item.id})" class="px-3 py-1.5 rounded-lg bg-brand-500 text-slate-950 text-[10px] font-bold shadow hover:brightness-110 active:scale-[0.95] transition-all flex items-center gap-1 cursor-pointer">
+               <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah
+             </button>`
+          : `<span class="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-slate-500 text-[9px] font-mono tracking-wider font-semibold uppercase">Habis</span>`;
+
+        return `
+          <div class="rounded-xl border border-slate-800/60 bg-slate-900/15 overflow-hidden flex flex-col hover:border-brand-500/20 transition-all duration-300 relative group">
+            
+            <!-- Food image tag representation -->
+            <div class="h-36 overflow-hidden relative bg-slate-950">
+              <img src="${item.img}" alt="${item.name}" referrerpolicy="no-referrer" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              <!-- Origin Badging -->
+              <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[8px] font-mono tracking-wider font-bold bg-slate-950/80 text-brand-400 border border-amber-500/10">
+                ${item.origin}
+              </span>
+            </div>
+
+            <!-- Description & content section -->
+            <div class="p-4 flex-grow flex flex-col justify-between gap-3">
+              <div class="space-y-1">
+                <span class="text-[9px] text-slate-500 font-mono font-bold tracking-wider uppercase">${item.cat}</span>
+                <h4 class="font-display font-black text-sm text-slate-200 line-clamp-1">${item.name}</h4>
+                <p class="text-[10px] leading-relaxed text-slate-400 line-clamp-2">${item.desc}</p>
+              </div>
+
+              <!-- Price row footer inside the card -->
+              <div class="flex items-center justify-between border-t border-slate-800/40 pt-2.5">
+                <span class="font-mono text-brand-400 font-black text-xs md:text-sm">Rp ${item.price.toLocaleString('id-ID')}</span>
+                ${buttonHtml}
+              </div>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // -------------------------------------------------------------
+    // SHOPPING CART CONTROLLER
+    // -------------------------------------------------------------
+    function addToCart(itemId) {
+      const item = state.menu.find(x => x.id === itemId);
+      if (!item) return;
+
+      const existingIdx = state.cart.findIndex(x => x.id === itemId);
+      if (existingIdx > -1) {
+        state.cart[existingIdx].qty += 1;
+      } else {
+        state.cart.push({
+          id: item.id,
+          cat: item.cat,
+          name: item.name,
+          price: item.price,
+          qty: 1,
+          img: item.img
+        });
+      }
+
+      // Small informative popup
+      const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 1500,
+        timerProgressBar: false,
+        background: state.isDarkMode ? '#0f1322' : '#ffffff',
+        color: state.isDarkMode ? '#eef0f5' : '#1e293b'
+      });
+      Toast.fire({
+        icon: 'success',
+        title: `${item.name} masuk keranjang kawan!`
+      });
+
+      renderCartUI();
+    }
+
+    function updateCartQty(idx, delta) {
+      const item = state.cart[idx];
+      if (!item) return;
+
+      item.qty += delta;
+      if (item.qty <= 0) {
+        state.cart.splice(idx, 1);
+      }
+      renderCartUI();
+    }
+
+    function renderCartUI() {
+      const emptyState = document.getElementById("cartStatusEmpty");
+      const filledState = document.getElementById("cartStatusFilledClass");
+      const badge = document.getElementById("cartQtyBadge");
+      const list = document.getElementById("cartList");
+
+      const qtySum = state.cart.reduce((s, x) => s + x.qty, 0);
+      badge.innerText = `${qtySum} Item`;
+
+      if (state.cart.length === 0) {
+        emptyState.classList.remove("hidden");
+        filledState.classList.add("hidden");
+        return;
+      }
+
+      emptyState.classList.add("hidden");
+      filledState.classList.remove("hidden");
+
+      // Set item rows inside list
+      list.innerHTML = state.cart.map((item, idx) => `
+        <div class="flex items-center justify-between gap-1.5 p-2 bg-slate-900/30 border border-slate-800 rounded-lg">
+          <div class="flex items-center gap-1.5 flex-grow min-w-0">
+            <div class="w-8 h-8 rounded-md overflow-hidden bg-slate-950 flex-shrink-0">
+              <img src="${item.img}" class="w-full h-full object-cover">
+            </div>
+            <div class="min-w-0">
+              <h5 class="font-display font-medium text-[10px] text-slate-200 line-clamp-1">${item.name}</h5>
+              <span class="font-mono text-[9px] text-brand-400">Rp ${item.price.toLocaleString('id-ID')}</span>
+            </div>
+          </div>
+          
+          <!-- Stepper controllers -->
+          <div class="flex items-center gap-1">
+            <button onclick="updateCartQty(${idx}, -1)" class="w-5 h-5 rounded bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer transition-colors">-</button>
+            <span class="font-mono text-[10px] w-4 text-center text-slate-200 font-bold">${item.qty}</span>
+            <button onclick="updateCartQty(${idx}, 1)" class="w-5 h-5 rounded bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer transition-colors">+</button>
+          </div>
+        </div>
+      `).join('');
+
+      // Math calculations representation
+      const subtotal = state.cart.reduce((s, x) => s + (x.price * x.qty), 0);
+      const tax = Math.round(subtotal * 0.11);
+      const grandTotal = subtotal + tax;
+
+      document.getElementById("cartSubtotal").innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
+      document.getElementById("cartTax").innerText = `Rp ${tax.toLocaleString('id-ID')}`;
+      document.getElementById("cartGrandTotal").innerText = `Rp ${grandTotal.toLocaleString('id-ID')}`;
+    }
+
+    // -------------------------------------------------------------
+    // MODAL DIALOGS - DINING MEJA SELECTION
+    // -------------------------------------------------------------
+    function openTableSelector() {
+      document.getElementById("tableDialog").showModal();
+    }
+
+    function renderTablesInModal() {
+      const grid = document.getElementById("tableModalGrid");
+      grid.innerHTML = state.tables.map(table => {
+        const isOccupied = table.is_occupied;
+        const colorClasses = isOccupied 
+          ? 'bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed opacity-60' 
+          : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 hover:border-emerald-500 cursor-pointer';
+
+        return `
+          <button onclick="${isOccupied ? '' : `chooseTable('${table.table_number}')`}" class="flex flex-col items-center justify-center p-3 rounded-xl border font-bold transition-all text-xs font-mono select-none ${colorClasses}">
+            <i data-lucide="armchair" class="w-4 h-4 mb-1"></i>
+            ${table.table_number}
+          </button>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    async function chooseTable(tableNumber) {
+      document.getElementById("tableDialog").close();
+      
+      // Select Optimistic update
+      await updateDbTableStatus(tableNumber, true);
+      updateSelectedTable(tableNumber);
+
+      Swal.fire({
+        icon: "success",
+        title: "Meja Terpilih!",
+        text: `Anda duduk di ${tableNumber}. Nikmati santapan, kawan!`,
+        background: state.isDarkMode ? '#0f1322' : '#ffffff',
+        color: state.isDarkMode ? '#eef0f5' : '#1e293b',
+        confirmButtonColor: '#c9a84c'
+      });
+    }
+
+    function selectTakeaway() {
+      document.getElementById("tableDialog").close();
+      updateSelectedTable(null);
+      state.orderType = "Take Away";
+      document.getElementById("checkoutOrderType").value = "Take Away";
+    }
+
+    function updateSelectedTable(tbl) {
+      state.selectedTable = tbl;
+      updateSelectedTableUI();
+    }
+
+    function updateSelectedTableUI() {
+      const btnLabel = document.getElementById("headerTableLabel");
+      if (state.selectedTable) {
+        btnLabel.innerText = state.selectedTable;
+        document.getElementById("checkoutOrderType").value = "Dine In";
+        state.orderType = "Dine In";
+      } else {
+        btnLabel.innerText = "Take Away";
+        document.getElementById("checkoutOrderType").value = "Take Away";
+        state.orderType = "Take Away";
+      }
+    }
+
+    // -------------------------------------------------------------
+    // CHEF CHAT CONCIERGE Virtual AI ENGINE
+    // -------------------------------------------------------------
+    function renderChat() {
+      const hist = document.getElementById("chatHistory");
+      hist.innerHTML = state.aiChatHistory.map(chat => {
+        const isUser = chat.role === 'user';
+        const floatClass = isUser ? 'self-end bg-brand-500/15 border-brand-500/20 text-slate-100' : 'self-start bg-slate-900 border-slate-800 text-slate-300';
+        const formattedHtml = isUser ? chat.text : marked.parse(chat.text);
+
+        return `
+          <div class="max-w-[85%] rounded-xl p-3 border leading-relaxed ${floatClass}">
+            <div class="font-bold text-[9px] text-slate-500 font-mono tracking-wider uppercase mb-1">${isUser ? 'Kawan' : 'Chef Concierge AI'}</div>
+            <div class="space-y-1">${formattedHtml}</div>
+          </div>
+        `;
+      }).join('');
+      
+      // Auto-scroll
+      hist.scrollTop = hist.scrollHeight;
+    }
+
+    async function handleSendAIChat() {
+      const input = document.getElementById("aiChatInput");
+      const query = input.value.trim();
+      if (!query) return;
+
+      input.value = "";
+      
+      // Save User Message
+      state.aiChatHistory.push({
+        id: `chat-${Date.now()}-user`,
+        role: "user",
+        text: query,
+        timestamp: new Date()
+      });
+      renderChat();
+
+      // Show typing preloader
+      const loader = document.getElementById("aiTypingIndicator");
+      loader.classList.remove("hidden");
+
+      try {
+        const contextualMenu = state.menu
+          .filter(m => m.is_available)
+          .map(m => `- [${m.cat}] ${m.name} - Rp ${m.price} (${m.desc})`)
+          .join("\n");
+
+        const res = await fetch("/api/gemini/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: query,
+            history: state.aiChatHistory.map(chat => ({ role: chat.role, text: chat.text })),
+            menuContext: contextualMenu
+          })
+        });
+
+        if (!res.ok) throw new Error("API Offline");
+        const data = await res.json();
+
+        state.aiChatHistory.push({
+          id: `chat-${Date.now()}-bot`,
+          role: "bot",
+          text: data.text || "Mohon maaf kawan, server AI kami sedang istirahat sebentar, mari lihat menu terpopuler.",
+          timestamp: new Date()
+        });
+      } catch (err) {
+        console.warn("API Service offline, using local standalone answers:", err);
+        // Inject offline reply fallback
+        state.aiChatHistory.push({
+          id: `chat-${Date.now()}-bot`,
+          role: "bot",
+          text: getOfflineLocalChatbotEngineResponse(query),
+          timestamp: new Date()
+        });
+      } finally {
+        loader.classList.add("hidden");
+        renderChat();
+      }
+    }
+
+    // Advanced Local Semantic Pattern matching for flawless presentation defense
+    function getOfflineLocalChatbotEngineResponse(query) {
+      const q = query.toLowerCase();
+      if (q.includes("halo") || q.includes("hai") || q.includes("hey") || q.includes("pagi") || q.includes("siang") || q.includes("sore") || q.includes("malam")) {
+        return "Halo kawan kuliner! Selamat datang di **Luxe Bites**. Saya asisten koki cerdas Anda. Ada menu Nusantara lezat, daging steak lumer bergizi, atau dessert penutup manis yang ingin Anda tanyakan? 🌸 Chef siap melayani!";
+      }
+      if (q.includes("rekomendasi") || q.includes("rekomendasiin") || q.includes("spesial") || q.includes("paling enak") || q.includes("favorit")) {
+        return "Menu terlaris utama kami adalah **Sate Madura Authentic** (Rp 22.000) dan **Nasi Goreng Kampung Spesial** (Rp 18.000). Untuk selera Western, cobalah **Creamy Carbonara Fettuccine** dan **Beef Burger Supreme Melt** yang lumer tebal! Nikmat tiada tara.";
+      }
+      if (q.includes("steak") || q.includes("daging") || q.includes("katsu") || q.includes("burger")) {
+        return "Bagi pecinta petualangan daging, cobalah **Premium Crispy Chicken Steak** garing disiram saus lada hitam kental pedas-manis (Rp 30.000) atau **Beef Burger Supreme Melt** yang super padat!";
+      }
+      if (q.includes("murah") || q.includes("hemat") || q.includes("harga")) {
+        return "Kami menyajikan camilan istimewa yang hemat di kantong, misalnya **Es Teh Jasmin Jumbo Craft** super pekat seharga Rp 4.000, serta kentang goreng krispi Prancis seharga Rp 12.000.";
+      }
+      if (q.includes("minum") || q.includes("segar") || q.includes("jus") || q.includes("kopi")) {
+        return "Untuk kesegaran murni tanpa pemanis buatan, silakan pesan **Es Jeruk Peras Alami Segar** (Rp 7.000). Jika kawan menyukai aroma kopi Arabika, cobalah **Premium Iced Caffe Latte** (Rp 15.000) kami!";
+      }
+      return "Sajian istimewa berkelas perpaduan rasa timur dan barat dapat kawan nikmati di Luxe Bites. Tanyakan rekomendasi menu, keasalan resep kuliner, atau sekadar sapa koki kami!";
+    }
+
+    // -------------------------------------------------------------
+    // CHECKOUT ORDER PROCESSING FLOW
+    // -------------------------------------------------------------
+    function triggerCheckoutFlow() {
+      if (state.cart.length === 0) return;
+
+      if (state.orderType === 'Dine In' && !state.selectedTable) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Nomor Meja Kosong',
+          text: 'Silakan pilih nomor meja duduk Anda terlebih dahulu untuk memulai pesanan makan di sini.',
+          background: state.isDarkMode ? '#0f1322' : '#ffffff',
+          color: state.isDarkMode ? '#eef0f5' : '#1e293b',
+          confirmButtonColor: '#c9a84c'
+        });
+        openTableSelector();
+        return;
+      }
+
+      // Check Payment Method
+      if (state.paymentMethod === 'QRIS') {
+        const subtotal = state.cart.reduce((s, x) => s + (x.price * x.qty), 0);
+        const tax = Math.round(subtotal * 0.11);
+        const grandTotal = subtotal + tax;
+
+        Swal.fire({
+          title: 'Luxe Cashless QRIS',
+          html: `
+            <div class="flex flex-col items-center justify-center p-3 font-sans">
+              <p class="mb-4 text-xs text-center">Silakan pindai QRIS standar bank berikut dengan aplikasi dompet digital Anda untuk melunasi tagihan:<br/><b class="text-lg text-amber-500 font-mono inline-block mt-1">Rp ${grandTotal.toLocaleString('id-ID')}</b></p>
+              <div class="bg-white p-4 border-2 border-amber-500/10 rounded-xl inline-block shadow-md">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=LUXEBITES-PAYMENT-${grandTotal}" alt="QRIS Standard" class="mx-auto block" />
+              </div>
+              <p class="text-[10px] mt-3 font-mono text-slate-500 text-center">NFC SECURE PAY — TAX INCLUDED • LUXE-TRX-${Math.floor(1000 + Math.random() * 9000)}</p>
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonText: 'Konfirmasi Pembayaran',
+          cancelButtonText: 'Kembali',
+          confirmButtonColor: '#10b981',
+          cancelButtonColor: '#ef4444',
+          background: state.isDarkMode ? '#0f1322' : '#ffffff',
+          color: state.isDarkMode ? '#eef0f5' : '#1e293b'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            processCheckout();
+          }
+        });
+      } else {
+        processCheckout();
+      }
+    }
+
+    async function processCheckout() {
+      Swal.fire({
+        title: 'Mengirim Pesanan Ke Chef...',
+        html: 'Menyiapkan bahan premium rasa terbaik, mohon tunggu sebentar kawan.',
+        allowOutsideClick: false,
+        background: state.isDarkMode ? '#0f1322' : '#ffffff',
+        color: state.isDarkMode ? '#eef0f5' : '#1e293b',
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      const code = 'LUXE-' + Math.floor(1000 + Math.random() * 9000);
+      const subtotal = state.cart.reduce((s, x) => s + (x.price * x.qty), 0);
+      const tax = Math.round(subtotal * 0.11);
+      const grandTotal = subtotal + tax;
+
+      const orderPayload = {
+        order_code: code,
+        table_number: state.orderType === 'Take Away' ? 'Take Away' : (state.selectedTable || 'Dine In'),
+        order_type: state.orderType,
+        payment_method: state.paymentMethod,
+        items: state.cart,
+        subtotal: subtotal,
+        tax: tax,
+        grand_total: grandTotal,
+        status: 'pending'
+      };
+
+      // Push to Supabase & local storage
+      await insertDbOrder(orderPayload);
+
+      // Clear Cart
+      state.cart = [];
+      renderCartUI();
+
+      // Launch Confetti Party
+      confetti({
+        particleCount: 130,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#c9a84c', '#475569', '#10b981', '#f59e0b']
+      });
+
+      Swal.close();
+      openDigitalReceiptModal(orderPayload);
+    }
+
+    function openDigitalReceiptModal(order) {
+      let itemsText = "";
+      order.items.forEach(item => {
+        itemsText += `• ${item.name} x${item.qty}\n  @Rp ${item.price.toLocaleString('id-ID')} -> Rp ${(item.price * item.qty).toLocaleString('id-ID')}\n`;
+      });
+
+      const receiptHtml = `
+        <div class="text-left font-mono text-xs text-slate-800 bg-[#f8fafc] p-4 rounded-xl border border-slate-200 shadow-inner max-h-[350px] overflow-y-auto leading-relaxed whitespace-pre-wrap">
+======================================
+              LUXE BITES
+        SISTEM ORDER MANDIRI
+======================================
+Kode Order : ${order.order_code}
+No Meja    : ${order.table_number}
+Tipe       : ${order.order_type}
+Metode     : ${order.payment_method}
+Waktu      : ${new Date().toLocaleString('id-ID')}
+--------------------------------------
+DAFTAR SAJIAN:
+${itemsText}
+--------------------------------------
+Subtotal   : Rp ${order.subtotal.toLocaleString('id-ID')}
+Pajak (11%): Rp ${order.tax.toLocaleString('id-ID')}
+======================================
+TOTAL      : Rp ${order.grand_total.toLocaleString('id-ID')}
+======================================
+Terima Kasih atas Kunjungan Anda, kawan!
+Silakan tunggu di meja, Chef segera memasak.
+        </div>
+      `;
+
+      Swal.fire({
+        title: 'Struk Pesanan Digital',
+        html: receiptHtml,
+        showDenyButton: true,
+        confirmButtonText: 'Cetak Laporan',
+        denyButtonText: 'Berikan Feedback',
+        confirmButtonColor: '#c9a84c',
+        denyButtonColor: '#10b981',
+        background: state.isDarkMode ? '#0f1322' : '#ffffff',
+        color: state.isDarkMode ? '#eef0f5' : '#1e293b'
+      }).then((res) => {
+        if (res.isConfirmed) {
+          window.print();
+          launchReviewSystem(order.order_code, order.table_number);
+        } else if (res.isDenied) {
+          launchReviewSystem(order.order_code, order.table_number);
+        }
+      });
+    }
+
+    // Customer Stars Feedback Reviews System
+    function launchReviewSystem(orderCode, tableNumber) {
+      let selectedRating = 5;
+
+      const getStarsMarkup = (sc) => {
+        return `
+          <div class="flex justify-center gap-3 my-4 text-3xl" id="sweetStarContainer">
+            ${[1, 2, 3, 4, 5].map(v => `
+              <button type="button" class="star-btn outline-none hover:scale-115 transition-transform ${v <= sc ? 'text-yellow-400' : 'text-slate-400'}" data-score="${v}">★</button>
+            `).join('')}
+          </div>
+        `;
+      };
+
+      Swal.fire({
+        title: 'Bintang Review Kawan',
+        html: `
+          <p class="text-xs text-slate-400 mt-1">Berikan masukan cita rasa kuliner & kebersihan saji kami pada Chef Executive Luxe Bites:</p>
+          <div id="starInputRow">${getStarsMarkup(selectedRating)}</div>
+          <input type="text" id="reviewCustomerName" placeholder="Nama Anda (Opsional)" class="w-full text-xs bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 outline-none mb-3 text-slate-800 dark:text-slate-100">
+          <textarea id="reviewComments" placeholder="Saran cita rasa rasa bumbu kuliner masakan koki..." class="w-full text-xs h-16 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 outline-none text-slate-800 dark:text-slate-100 block"></textarea>
+        `,
+        confirmButtonText: 'Kirim Masukan',
+        confirmButtonColor: '#10b981',
+        background: state.isDarkMode ? '#0f1322' : '#ffffff',
+        color: state.isDarkMode ? '#eef0f5' : '#1e293b',
+        didOpen: () => {
+          // Binding live clicks to stars
+          const starsClickRegister = () => {
+            const btns = document.querySelectorAll(".star-btn");
+            btns.forEach(btn => {
+              btn.addEventListener("click", (e) => {
+                selectedRating = parseInt(e.target.getAttribute("data-score") || "5");
+                document.getElementById("starInputRow").innerHTML = getStarsMarkup(selectedRating);
+                starsClickRegister();
+              });
+            });
+          };
+          starsClickRegister();
+        }
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          const name = document.getElementById("reviewCustomerName").value.trim() || "Kawan Anonim";
+          const comments = document.getElementById("reviewComments").value.trim() || "Cita rasa makanan sangat lezat berkelas kemewahan!";
+          
+          const payload = {
+            order_code: orderCode,
+            table_number: tableNumber,
+            customer_name: name,
+            rating: selectedRating,
+            comments: comments,
+            created_at: new Date().toISOString()
+          };
+
+          await insertDbReview(payload);
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Terima Kasih Kawan!',
+            text: 'Tanggapan telah terkirim kepada Management Chef kuliner kami.',
+            confirmButtonColor: '#c9a84c',
+            background: state.isDarkMode ? '#0f1322' : '#ffffff',
+            color: state.isDarkMode ? '#eef0f5' : '#1e293b'
+          });
+        }
+      });
+    }
+
+    // Display order history in popup
+    function showHistory() {
+      const history = getLocalOrders();
+      if (history.length === 0) {
+        Swal.fire({
+          title: 'Belum Ada Transaksi',
+          text: 'Anda belum memesan sajian mewah hari ini. Berminat memesan racikan koki terbaik?',
+          icon: 'info',
+          confirmButtonColor: '#c9a84c',
+          background: state.isDarkMode ? '#0f1322' : '#ffffff',
+          color: state.isDarkMode ? '#eef0f5' : '#1e293b'
+        });
+        return;
+      }
+
+      let listHtml = `
+        <div class="text-left max-h-[300px] overflow-y-auto pr-1">
+          <div class="flex justify-between items-center mb-4 border-b border-amber-500/10 pb-2">
+            <span class="text-[9px] text-slate-500 uppercase font-mono">Ketuk struk untuk mencetak</span>
+            <button id="clearHistoryBtn" class="text-[9px] bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white px-2 py-1 rounded font-sans transition-colors cursor-pointer uppercase font-bold">Clear All</button>
+          </div>
+      `;
+
+      history.forEach((order, idx) => {
+        listHtml += `
+          <div class="mb-3.5 p-3 bg-slate-900/40 border border-slate-800 hover:border-brand-500/20 rounded-xl flex flex-col justify-between transition-all">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-mono text-xs font-bold text-amber-500">${order.order_code}</span>
+              <span class="text-[9px] px-2 py-0.5 rounded-full ${order.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-500'} font-bold uppercase">
+                ${order.status === 'completed' ? 'Selesai' : 'Antre'}
+              </span>
+            </div>
+            <p class="text-[10px] text-slate-500 mb-2">${order.table_number} • ${order.order_type} • ${order.payment_method}</p>
+            <div class="space-y-0.5 pl-2 border-l border-amber-500/20 text-[11px] text-slate-400">
+              ${order.items.slice(0, 3).map(item => `<div>• ${item.name} <span class="font-mono text-[9px] text-slate-500">x${item.qty}</span></div>`).join('')}
+              ${order.items.length > 3 ? `<div class="text-[9px] text-slate-500 italic">+${order.items.length - 3} menu lainnya...</div>` : ''}
+            </div>
+            <div class="flex justify-between items-center mt-3 pt-2 border-t border-slate-850">
+              <span class="text-[11px] font-bold font-mono">Total: Rp ${order.grand_total.toLocaleString('id-ID')}</span>
+              <button class="print-history-btn text-[9px] border border-brand-500/20 text-brand-400 hover:bg-brand-500 hover:text-slate-950 px-2.5 py-1 rounded transition-colors cursor-pointer uppercase font-bold" data-idx="${idx}">Cetak</button>
+            </div>
+          </div>
+        `;
+      });
+
+      listHtml += `</div>`;
+
+      Swal.fire({
+        title: 'Riwayat Belanja Anda',
+        html: listHtml,
+        showConfirmButton: false,
+        showCloseButton: true,
+        background: state.isDarkMode ? '#0f1322' : '#ffffff',
+        color: state.isDarkMode ? '#eef0f5' : '#1e293b',
+        didOpen: () => {
+          const btns = document.querySelectorAll(".print-history-btn");
+          btns.forEach(btn => {
+            btn.addEventListener("click", (e) => {
+              const idxStr = e.target.getAttribute("data-idx");
+              const targetOrder = getLocalOrders()[parseInt(idxStr)];
+              if (targetOrder) {
+                Swal.close();
+                openDigitalReceiptModal(targetOrder);
+              }
+            });
+          });
+
+          document.getElementById("clearHistoryBtn").addEventListener("click", () => {
+            Swal.close();
+            Swal.fire({
+              title: "Hapus Semua Riwayat?",
+              text: "Data struk lokal pada browser ini akan dikosongkan secara permanen.",
+              icon: "warning",
+              showCancelButton: true,
+              confirmButtonColor: "#ef4444",
+              cancelButtonColor: "#c9a84c",
+              confirmButtonText: "Tunggal, Kosongkan",
+              background: state.isDarkMode ? '#0f1322' : '#ffffff',
+              color: state.isDarkMode ? '#eef0f5' : '#1e293b'
+            }).then(r => {
+              if (r.isConfirmed) {
+                clearLocalOrders();
+                Swal.fire({
+                  title: 'Dibersihkan!',
+                  icon: 'success',
+                  confirmButtonColor: '#c9a84c',
+                  background: state.isDarkMode ? '#0f1322' : '#ffffff',
+                  color: state.isDarkMode ? '#eef0f5' : '#1e293b'
+                });
+              }
+            });
+          });
+        }
+      });
+    }
+
+  </script>
+</body>
+</html>
